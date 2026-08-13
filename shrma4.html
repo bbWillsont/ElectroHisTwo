@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>ЭлектроМонтаж — конструктор схем</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect width='24' height='24' rx='6' fill='%23f6c445'/><path d='M13 3 5.5 13.5h5L9.5 21 18 10.5h-5L13 3z' fill='%2317181d'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700&family=Golos+Text:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0f1013;--shell:#17181d;--side:#1b1d22;--card:#1d1f25;--card2:#22242b;--field:#14161a;
+--line:#2a2d35;--line2:#383c46;--ink:#f4f5f7;--mut:#a0a6b1;--dim:#6d7380;
+--yel:#f6c445;--yelT:#ffd975;--ydim:rgba(246,196,69,.13);
+--green:#4ade80;--red:#ff6b5e;--blue:#5aa7ff;--cyan:#22d3ee;--purple:#a78bfa;--orange:#fb923c;--del:#b04352;
+--disp:'Unbounded',sans-serif;--body:'Golos Text',sans-serif;--mono:'JetBrains Mono',monospace;
+--sh:0 14px 34px rgba(0,0,0,.35);--canvas-bg:#111318;--canvas-grid:#23262e;}
+html[data-theme="light"]{--bg:#eef1f5;--shell:#ffffff;--side:#fbfcfe;--card:#ffffff;--card2:#eef1f5;--field:#f7f8fa;
+--line:#e3e7ee;--line2:#c9d1dc;--ink:#1a2438;--mut:#5b6472;--dim:#8a93a3;--yelT:#8a6a00;--ydim:rgba(246,196,69,.2);
+--green:#1d8a54;--red:#d43d2a;--blue:#2559d3;--cyan:#0891b2;--purple:#7c3aed;--orange:#ea580c;--del:#a03340;
+--sh:0 14px 34px rgba(30,40,60,.12);--canvas-bg:#f5f7fa;--canvas-grid:#dfe4ec;}
+*{margin:0;padding:0;box-sizing:border-box}
+html{overflow-x:hidden}
+body{font-family:var(--body);background:var(--bg);color:var(--ink);font-size:14.5px;line-height:1.5;min-height:100vh;padding:18px;overflow-x:hidden}
+::selection{background:rgba(246,196,69,.3)}
+button{font-family:inherit;cursor:pointer;color:inherit}
+input,select,textarea{font-family:inherit;color:var(--ink)}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:var(--line2);border:3px solid var(--shell);border-radius:8px}
+.app{max-width:1760px;margin:0 auto;display:grid;grid-template-columns:270px 1fr 320px;background:var(--shell);
+border:1px solid var(--line);border-radius:24px;overflow:hidden;min-height:calc(100vh - 36px)}
+@media(min-width:1101px){
+ body{overflow:hidden}
+ .app{height:calc(100vh - 36px);min-height:0}
+ .side,.right,.main{min-height:0}
+ .side{overflow:hidden}
+ .main{overflow:hidden}
+ .right{overflow-y:auto}
+}
+.side{background:var(--side);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:20px 14px 16px;overflow:hidden;min-height:0}
+.brand{display:flex;align-items:center;gap:12px;padding:2px 6px 14px;min-width:0}
+.brand-ic{width:40px;height:40px;border-radius:12px;background:var(--yel);display:grid;place-items:center;box-shadow:0 6px 18px rgba(246,196,69,.28);flex:none}
+.brand-ic svg{width:20px;height:20px;fill:#17181d}
+.brand b{font-size:14.5px;font-weight:700;white-space:nowrap}
+.brand .sub{font-size:11px;color:var(--dim)}
+.lib-scroll{flex:1;overflow-y:auto;padding-right:4px;min-height:0}
+.lib-hint{font-size:11.5px;color:var(--mut);background:var(--field);border:1px dashed var(--line2);border-radius:10px;padding:9px 11px;margin-bottom:10px;line-height:1.45}
+.lib-hint b{color:var(--yelT)}
+.lib-group-t{font-family:var(--disp);font-weight:600;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--yelT);margin:14px 4px 8px}
+.lib-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.lib-item{display:flex;flex-direction:column;align-items:center;gap:6px;padding:11px 6px;background:var(--card);border:1px solid var(--line);border-radius:12px;cursor:grab;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+.lib-item:hover{border-color:var(--yel)}
+.lib-item svg{width:30px;height:30px;stroke:var(--ink);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.lib-item span{font-size:10px;color:var(--mut);text-align:center;line-height:1.2}
+.main{display:flex;flex-direction:column;min-width:0;max-width:100%;background:var(--bg);min-height:0}
+.topbar{display:flex;align-items:center;gap:10px;padding:12px 20px;border-bottom:1px solid var(--line);flex-wrap:wrap;background:var(--shell)}
+.topbar .title{margin-right:auto;display:flex;align-items:center;gap:8px;min-width:0}
+.topbar .title input{background:transparent;border:1px solid transparent;border-radius:8px;font-family:var(--disp);font-size:14px;font-weight:600;color:var(--ink);padding:4px 8px;width:200px;outline:none}
+.topbar .title input:focus{border-color:var(--yel);background:var(--field)}
+.tools{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.tool-btn{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--card);display:grid;place-items:center;transition:.15s;color:var(--mut)}
+.tool-btn:hover{border-color:var(--line2);color:var(--ink)}
+.tool-btn.active{background:var(--ydim);border-color:var(--yel);color:var(--yelT)}
+.tool-btn svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tool-sep{width:1px;height:26px;background:var(--line);margin:0 4px}
+.canvas-wrap{flex:1;position:relative;overflow:hidden;min-height:0;background:var(--canvas-bg);touch-action:none}
+#canvas{position:absolute;top:0;left:0;touch-action:none}
+.zoom-ctrl{position:absolute;right:18px;bottom:18px;display:flex;flex-direction:column;gap:6px;z-index:10}
+.zoom-ctrl button{width:40px;height:40px;border-radius:11px;border:1px solid var(--line2);background:var(--shell);color:var(--ink);font-size:18px;font-weight:600;display:grid;place-items:center;box-shadow:var(--sh)}
+.zoom-pct{font-family:var(--mono);font-size:11px;text-align:center;color:var(--mut);background:var(--shell);border:1px solid var(--line2);border-radius:8px;padding:4px 0}
+.canvas-info{position:absolute;left:12px;top:12px;display:flex;flex-direction:column;gap:6px;z-index:9;align-items:flex-start}
+.info-chip{font-size:11px;color:var(--mut);background:var(--shell);border:1px solid var(--line);border-radius:16px;padding:4px 10px;display:flex;align-items:center;gap:6px;box-shadow:var(--sh)}
+.info-chip b{font-family:var(--mono);color:var(--ink)}
+.info-chip .dot{width:6px;height:6px;border-radius:50%}
+.lay-bar{position:absolute;top:12px;right:12px;z-index:12;display:none;align-items:center;gap:4px;
+background:rgba(23,24,29,.55);backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:5px 10px;opacity:.9}
+html[data-theme="light"] .lay-bar{background:rgba(255,255,255,.65);border-color:rgba(0,0,0,.08)}
+.lay-bar.on{display:flex}
+.lay-t{font-size:11px;color:var(--mut)}
+.lay-opt{border:none;background:transparent;color:var(--mut);font-size:11.5px;padding:4px 9px;border-radius:14px;white-space:nowrap}
+.lay-opt.active{background:var(--ydim);color:var(--yelT);font-weight:700}
+.float-bar{position:absolute;left:50%;transform:translateX(-50%);bottom:14px;z-index:15;display:none;
+align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;background:var(--shell);border:1px solid var(--line2);
+border-radius:14px;padding:8px 12px;box-shadow:var(--sh);max-width:96%;}
+.float-bar.on{display:flex}
+.wb-sel{background:var(--field);border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-size:13px;outline:none;color:var(--ink);max-width:170px}
+.wb-sel:focus{border-color:var(--yel)}
+.wb-len{font-family:var(--mono);font-size:12px;color:var(--yelT);font-weight:600;white-space:nowrap}
+.eb-title{font-weight:700;font-size:13px;color:var(--yelT);white-space:nowrap}
+.eb-size-wrap{display:flex;align-items:center;gap:6px}
+.eb-size-wrap input{width:110px;accent-color:var(--yel)}
+#ebSizeVal{font-family:var(--mono);font-size:11px;color:var(--mut);min-width:42px}
+.right{background:var(--side);border-left:1px solid var(--line);padding:16px 14px;display:flex;flex-direction:column;gap:12px;min-height:0}
+.rp-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;flex:none}
+.rp-card h3{font-size:13px;font-weight:700;margin-bottom:11px;display:flex;align-items:center;gap:8px}
+.rp-card h3 .cnt{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--dim);font-weight:400}
+.prop-row{margin-bottom:10px}
+.prop-row label{display:block;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--dim);margin-bottom:5px}
+.prop-row .inp{width:100%;background:var(--field);border:1px solid var(--line);border-radius:9px;padding:8px 11px;font-size:13px;outline:none}
+.prop-row .inp:focus{border-color:var(--yel)}
+select.inp{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M1 1l4 4 4-4' stroke='%238a93a3' stroke-width='1.5' fill='none'/></svg>");background-repeat:no-repeat;background-position:right 12px center;padding-right:30px}
+.empty-prop{text-align:center;color:var(--dim);font-size:12.5px;padding:16px 8px;line-height:1.5}
+.empty-prop .ic{font-size:22px;margin-bottom:6px}
+.mono-val{font-family:var(--mono);font-size:13px;color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:9px;padding:8px 11px}
+input[type=range]{accent-color:var(--yel)}
+.spec-list{display:flex;flex-direction:column;gap:6px;max-height:240px;overflow-y:auto}
+.spec-item{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:7px 9px;background:var(--field);border:1px solid var(--line);border-radius:9px}
+.spec-item .si-nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:default}
+.spec-item .si-ct{font-family:var(--mono);font-weight:600;color:var(--yelT);flex:none;white-space:nowrap}
+.spec-item .si-kind{font-size:9px;font-weight:700;padding:2px 6px;border-radius:6px;flex:none;text-transform:uppercase}
+.spec-item .si-kind.mat{background:rgba(90,167,255,.14);color:var(--blue)}
+.spec-item .si-kind.work{background:rgba(74,222,128,.14);color:var(--green)}
+.spec-item .si-del{flex:none;width:32px;height:32px;border-radius:8px;border:none;background:rgba(255,107,94,.16);color:var(--red);font-size:16px;font-weight:700;display:grid;place-items:center}
+.spec-item .si-del:active{background:var(--red);color:#fff}
+.cost-total{margin-top:8px;font-family:var(--mono);font-weight:700;color:var(--yelT);font-size:14px;text-align:right}
+#tip{position:fixed;z-index:99;display:none;background:var(--shell);border:1px solid var(--line2);color:var(--ink);
+padding:6px 10px;border-radius:8px;font-size:12px;pointer-events:none;box-shadow:var(--sh);max-width:280px;line-height:1.35}
+.switch-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;font-size:13px;font-weight:600}
+.ios-switch{position:relative;display:inline-block;width:46px;height:26px;flex:none}
+.ios-switch input{display:none}
+.ios-switch .sl{position:absolute;inset:0;background:#3a3f4a;border-radius:26px;transition:.25s;cursor:pointer}
+html[data-theme="light"] .ios-switch .sl{background:#d5d9e0}
+.ios-switch .sl:before{content:"";position:absolute;width:20px;height:20px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.25s;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+.ios-switch input:checked+.sl{background:var(--green)}
+.ios-switch input:checked+.sl:before{transform:translateX(20px)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:none;border-radius:11px;font-weight:600;font-size:12.5px;padding:9px 14px;background:var(--card2);color:var(--ink);width:100%}
+.btn-amber{background:var(--yel);color:#17181d}
+.btn-ghost{background:var(--card2);border:1px solid var(--line)}
+.btn-cyan{background:rgba(90,167,255,.12);color:var(--blue)}
+.btn-red{background:rgba(255,107,94,.12);color:var(--red)}
+.btn-green{background:rgba(74,222,128,.16);color:var(--green)}
+.btn-sm{padding:8px 12px;font-size:12.5px}
+.btn-row{display:flex;gap:7px}
+.btn-row .btn{flex:1}
+#overlay{position:fixed;inset:0;z-index:60;background:rgba(10,11,14,.7);backdrop-filter:blur(4px);display:none;align-items:flex-start;justify-content:center;padding:50px 18px;overflow-y:auto}
+#overlay.on{display:flex}
+#modal{width:100%;max-width:600px;background:var(--card);border:1px solid var(--line2);border-radius:20px;padding:24px 26px;box-shadow:var(--sh)}
+#modal h3{font-size:17px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:10px}
+#modal h3::before{content:"";width:9px;height:9px;border-radius:3px;background:var(--yel);flex:none}
+.modal-foot{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}
+.modal-foot .btn{width:auto}
+.proj-list-m{display:flex;flex-direction:column;gap:7px;max-height:260px;overflow-y:auto;margin-bottom:12px}
+.proj-m-item{display:flex;align-items:center;gap:9px;background:var(--field);border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer}
+.proj-m-item:active{border-color:var(--yel)}
+.proj-m-item .pm-nm{flex:1;font-weight:600;font-size:13px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.proj-m-item .pm-sub{font-size:11px;color:var(--dim)}
+#toasts{position:fixed;right:22px;bottom:22px;z-index:80;display:flex;flex-direction:column;gap:9px}
+.toast{background:var(--card);border:1px solid var(--line2);border-left:4px solid var(--yel);border-radius:12px;padding:12px 16px;font-size:13.5px;font-weight:600;box-shadow:var(--sh);max-width:380px}
+.toast.ok{border-left-color:var(--green)} .toast.err{border-left-color:var(--red)}
+.mb-tools{display:none}
+@media(max-width:1100px){
+body{padding:10px 10px 76px}
+.app{grid-template-columns:1fr;grid-template-rows:auto 1fr auto;border-radius:18px;min-height:calc(100vh - 20px)}
+.side{border-right:none;border-bottom:1px solid var(--line);padding:12px}
+.lib-scroll{max-height:130px}
+.lib-grid{grid-template-columns:repeat(4,1fr)}
+.right{border-left:none;border-top:1px solid var(--line)}
+.canvas-wrap{min-height:52vh}
+.tools{display:none}
+.mb-tools{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--shell);border-top:1px solid var(--line);
+padding:8px 10px calc(8px + env(safe-area-inset-bottom));gap:6px;justify-content:center;overflow-x:auto}
+.mb-tools .tool-btn{width:46px;height:46px;flex:none}
+.float-bar{position:fixed;left:8px;right:8px;transform:none;bottom:calc(68px + env(safe-area-inset-bottom));max-width:none;z-index:41;padding:10px}
+.wb-sel{flex:1;min-width:0;max-width:none;padding:12px 8px;font-size:13px}
+.float-bar .btn{width:auto;flex:none;padding:12px 14px}
+.eb-size-wrap input{width:80px}
+.lay-bar{top:8px;right:8px;max-width:60%;overflow-x:auto}
+.canvas-info{left:8px;top:8px}
+#toasts{right:10px;bottom:150px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <div class="brand-ic"><svg viewBox="0 0 24 24"><path d="M13 3 5.5 13.5h5L9.5 21 18 10.5h-5L13 3z"/></svg></div>
+      <div><b>Конструктор схем</b><div class="sub">материалы и работы из прайса</div></div>
+    </div>
+    <div class="lib-scroll" id="libScroll"></div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="title"><input id="projName" value="Новая схема" spellcheck="false"></div>
+      <div class="tools">
+        <button class="tool-btn active" data-tool="select"><svg viewBox="0 0 24 24"><path d="M4 4l7 17 2.5-7.5L21 11z"/></svg></button>
+        <button class="tool-btn" data-tool="wire"><svg viewBox="0 0 24 24"><path d="M4 17c4 0 4-10 8-10s4 10 8 10"/><circle cx="4" cy="17" r="1.6"/><circle cx="20" cy="17" r="1.6"/></svg></button>
+        <button class="tool-btn" data-tool="room"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="1.5"/><path d="M4 12h16"/></svg></button>
+        <button class="tool-btn" data-tool="text"><svg viewBox="0 0 24 24"><path d="M5 7V5h14v2M12 5v14M9 19h6"/></svg></button>
+        <button class="tool-btn" data-tool="ruler"><svg viewBox="0 0 24 24"><rect x="2" y="14" width="20" height="6" rx="1.5" transform="rotate(-30 12 17)"/><path d="M8 13.5l1.2 2M11.5 11.5l1.2 2M15 9.5l1.2 2"/></svg></button>
+        <div class="tool-sep"></div>
+        <button class="tool-btn" id="btnBg"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M3 17l5-4 4 3 4-4 5 5"/></svg></button>
+        <button class="tool-btn" id="btnUndo"><svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg></button>
+        <button class="tool-btn" id="btnRedo"><svg viewBox="0 0 24 24"><path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></svg></button>
+        <button class="tool-btn" id="btnClear"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V5h6v2M7 7l1 13h8l1-13M10 11v5M14 11v5"/></svg></button>
+      </div>
+      <input type="file" id="bgFile" accept="image/*" hidden>
+    </div>
+
+    <div class="canvas-wrap" id="canvasWrap">
+      <canvas id="canvas"></canvas>
+      <div class="canvas-info" id="canvasInfo"></div>
+      <div class="lay-bar" id="layBar">
+        <span class="lay-t">Прокладка:</span>
+        <button class="lay-opt active" data-lay="corr">в гофре</button>
+        <button class="lay-opt" data-lay="channel">в кабель-канале</button>
+        <button class="lay-opt" data-lay="open">открытая</button>
+      </div>
+      <div class="zoom-ctrl">
+        <button id="zoomIn">+</button><div class="zoom-pct" id="zoomPct">100%</div>
+        <button id="zoomOut">−</button><button id="zoomFit" style="font-size:13px">⤢</button>
+      </div>
+
+      <div class="float-bar" id="wireBar">
+        <select id="wbCable" class="wb-sel"></select>
+        <select id="wbLay" class="wb-sel">
+          <option value="corr">в гофре</option><option value="channel">в кабель-канале</option><option value="open">открытая</option>
+        </select>
+        <select id="wbColor" class="wb-sel"></select>
+        <select id="wbThick" class="wb-sel">
+          <option value="1.5">Тонкая</option><option value="2.5">Средняя</option>
+          <option value="3.5" selected>Толстая</option><option value="5">Очень толстая</option>
+        </select>
+        <span class="wb-len" id="wbLen"></span>
+        <button class="btn btn-amber btn-sm" id="wbDone">✓ Готово</button>
+        <button class="btn btn-red btn-sm" id="wbDelete" style="display:none">🗑</button>
+        <button class="btn btn-ghost btn-sm" id="wbCancel">✕</button>
+      </div>
+
+      <div class="float-bar" id="editBar">
+        <span class="eb-title" id="ebTitle"></span>
+        <button class="btn btn-ghost btn-sm" id="ebLabel">✏️</button>
+        <button class="btn btn-ghost btn-sm" id="ebRot">⟳ 90°</button>
+        <span class="eb-size-wrap" id="ebSizeWrap"><span id="ebSizeVal">100%</span><input type="range" id="ebSize" min="40" max="300" value="100"></span>
+        <button class="btn btn-red btn-sm" id="ebDel">🗑</button>
+        <button class="btn btn-ghost btn-sm" id="ebClose">✕</button>
+      </div>
+    </div>
+  </div>
+
+  <aside class="right">
+    <div class="rp-card" id="bgCard" style="display:none">
+      <h3>🖼 План помещения</h3>
+      <div class="prop-row"><label>Масштаб плана: <span id="bgScaleVal">100%</span></label><input type="range" id="bgScale" min="10" max="400" value="100"></div>
+      <div class="prop-row"><label>Прозрачность: <span id="bgOpVal">85%</span></label><input type="range" id="bgOp" min="10" max="100" value="85"></div>
+      <div class="btn-row"><button class="btn btn-ghost btn-sm" id="bgFit">⤢ Вписать</button><button class="btn btn-red btn-sm" id="bgDel">Удалить</button></div>
+    </div>
+    <div class="rp-card"><h3>Спецификация <span class="cnt" id="specCount"></span></h3><div class="spec-list" id="specList"></div></div>
+    <div class="rp-card"><h3>💰 Стоимость <span class="cnt" id="costKind"></span></h3><div class="spec-list" id="costList"></div><div class="cost-total" id="costTotal"></div></div>
+    <div class="rp-card"><h3>Проект</h3>
+      <button class="btn btn-green btn-sm" id="btnToProject">📤 В проект (смета)</button>
+      <button class="btn btn-cyan btn-sm" id="btnUpdateEstimate" style="display:none;margin-top:8px">🔄 Обновить смету</button>
+      <div class="switch-row"><span>+Работа <span style="color:var(--dim);font-weight:400;font-size:11px">(работы и способ прокладки)</span></span>
+        <label class="ios-switch"><input type="checkbox" id="workToggle"><span class="sl"></span></label></div>
+      <div class="prop-row"><label>Привязка</label><div class="mono-val" id="linkedProj" style="font-size:12px">не привязано</div></div>
+      <button class="btn btn-ghost btn-sm" id="btnProjModal" style="margin-bottom:8px">📁 Проекты схем</button>
+      <div class="btn-row" style="margin-bottom:8px"><button class="btn btn-ghost btn-sm" id="btnSave">💾 Сохранить</button><button class="btn btn-ghost btn-sm" id="btnLoad">📂 Открыть</button></div>
+      <select class="inp" id="projList" style="width:100%;margin-bottom:8px"></select>
+      <div class="btn-row"><button class="btn btn-cyan btn-sm" id="btnExportPng">🖼 PNG</button><button class="btn btn-amber btn-sm" id="btnExportPdf">📄 PDF</button></div>
+    </div>
+  </aside>
+</div>
+
+<div class="mb-tools">
+  <button class="tool-btn active" data-tool="select"><svg viewBox="0 0 24 24"><path d="M4 4l7 17 2.5-7.5L21 11z"/></svg></button>
+  <button class="tool-btn" data-tool="wire"><svg viewBox="0 0 24 24"><path d="M4 17c4 0 4-10 8-10s4 10 8 10"/><circle cx="4" cy="17" r="1.6"/><circle cx="20" cy="17" r="1.6"/></svg></button>
+  <button class="tool-btn" data-tool="room"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="1.5"/><path d="M4 12h16"/></svg></button>
+  <button class="tool-btn" data-tool="text"><svg viewBox="0 0 24 24"><path d="M5 7V5h14v2M12 5v14M9 19h6"/></svg></button>
+  <button class="tool-btn" data-tool="ruler"><svg viewBox="0 0 24 24"><rect x="2" y="14" width="20" height="6" rx="1.5" transform="rotate(-30 12 17)"/><path d="M8 13.5l1.2 2M11.5 11.5l1.2 2M15 9.5l1.2 2"/></svg></button>
+  <button class="tool-btn" id="btnBgMb"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M3 17l5-4 4 3 4-4 5 5"/></svg></button>
+  <button class="tool-btn" id="btnUndoMb"><svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg></button>
+  <button class="tool-btn" id="btnDelMb"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V5h6v2M7 7l1 13h8l1-13"/></svg></button>
+</div>
+
+<div id="tip"></div>
+<div id="overlay"><div id="modal"></div></div>
+<div id="toasts"></div>
+
+<script>
+var LAYING={
+ corr:{label:"в гофре",matKw:["гофра","гофр","труба"],clipKw:["клипс","клипса"],workKw:["монтаж гофры","монтаж трубы","гофра"]},
+ channel:{label:"в кабель-канале",matKw:["кабель-канал","кабель канал"],clipKw:["крепление кабель","дюбель","саморез"],workKw:["монтаж кабель-канала","монтаж канала","кабель-канал"]},
+ open:{label:"открытая",matKw:[],clipKw:[],workKw:[]}};
+var WIRE_COLORS={"var(--yel)":"⚡ жёлтый","var(--cyan)":"📹 голубой","var(--orange)":"🟠 оранжевый","var(--green)":"🟢 зелёный","var(--red)":"🔴 красный","var(--purple)":"🟣 фиолетовый","var(--mut)":"⚪ серый"};
+var DEFAULT_CABLES=[{id:"d_vvg25",name:"ВВГнг-LS 3×2,5",price:0,unit:"м.п.",trade:"elektro"},
+ {id:"d_vvg15",name:"ВВГнг-LS 3×1,5",price:0,unit:"м.п.",trade:"elektro"},
+ {id:"d_utp",name:"UTP cat5e",price:0,unit:"м.п.",trade:"video"}];
+var DEFAULT_ELEMENTS=[{id:"d_socket",name:"Розетка",cat:"Электрика",price:0},{id:"d_switch",name:"Выключатель",cat:"Электрика",price:0},
+ {id:"d_lamp",name:"Светильник",cat:"Электрика",price:0},{id:"d_cam",name:"Камера",cat:"Видео",price:0},
+ {id:"d_nvr",name:"Видеорегистратор",cat:"Видео",price:0},{id:"d_router",name:"Роутер",cat:"Видео",price:0}];
+
+var state={elements:[],wires:[],texts:[],rooms:[],bg:null,pxPerMeter:0,mainProjectId:null,includeWork:false};
+var ui={tool:"select",zoom:1,panX:0,panY:0,selected:null,laying:"corr",
+  dragging:null,wirePreview:null,roomStart:null,roomPreview:null,
+  rulerA:null,rulerB:null,rulerHover:null,lastWireTap:null,pendingTextPos:null,
+  history:[],historyIdx:-1,cableId:null,cableName:"",color:"var(--yel)",thick:3.5,bgBase:null};
+var idCounter=1,bgImg=null;
+
+function uid(){return "e"+(idCounter++)+"_"+Date.now().toString(36);}
+function $(id){return document.getElementById(id);}
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];});}
+function fmt(n){return String(Math.round(n||0)).replace(/\B(?=(\d{3})+(?!\d))/g," ");}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+function toast(msg,type){var t=document.createElement("div");t.className="toast "+(type||"");t.textContent=msg;$("toasts").appendChild(t);
+  setTimeout(function(){t.style.opacity="0";t.style.transition=".3s";setTimeout(function(){t.remove();},320);},3000);}
+function resolveColor(c){var d=document.createElement("div");d.style.color=c;document.body.appendChild(d);
+  var rgb=getComputedStyle(d).color;document.body.removeChild(d);return rgb;}
+function onTap(el,fn){if(!el)return;
+  el.addEventListener("click",function(e){fn(e);});
+  el.addEventListener("touchend",function(e){e.preventDefault();e.stopPropagation();fn(e);});}
+
+function findMainState(){for(var i=0;i<localStorage.length;i++){var key=localStorage.key(i);
+  try{var v=JSON.parse(localStorage.getItem(key));
+    if(v&&Array.isArray(v.projects)&&v.estimates&&typeof v.estimates==="object")return{key:key,data:v};}catch(e){}}
+  return null;}
+function getPricelist(){var ms=findMainState();return (ms&&Array.isArray(ms.data.pricelist))?ms.data.pricelist:[];}
+function isCableName(n){return /ввг|vvg|утп|utp|коакс|rg|рг|витая|кабель|провод|пв-|шввп/i.test(n||"");}
+function normName(s){return String(s||"").toLowerCase().replace(/ё/g,"е").replace(/[×хx]/g,"x").replace(/[^a-zа-я0-9x.,]/g,"");}
+function matchItem(pl,keywords,kind){var best=null,bestScore=0;
+  pl.forEach(function(p){if(kind&&p.kind!==kind)return;
+    var pn=normName(p.name);if(!pn)return;var score=0;
+    keywords.forEach(function(kw){var kn=normName(kw);if(kn&&kn.length>=3&&pn.indexOf(kn)!==-1)score+=kn.length;});
+    if(score>bestScore){bestScore=score;best=p;}});
+  return bestScore>0?best:null;}
+function getCableCatalog(){var pl=getPricelist();
+  var c=pl.filter(function(p){return p.kind==="material"&&isCableName(p.name);});
+  return c.length?c:DEFAULT_CABLES;}
+function getElementCatalog(){var pl=getPricelist();
+  var m=pl.filter(function(p){return p.kind==="material"&&!isCableName(p.name);});
+  return m.length?m:DEFAULT_ELEMENTS;}
+function lookupCablePrice(id,name){var pl=getPricelist();
+  for(var i=0;i<pl.length;i++){if(String(pl[i].id)===String(id))return +pl[i].price||0;}
+  var m=matchItem(pl,[name],"material");return m?(+m.price||0):0;}
+
+function classify(name){var n=(name||"").toLowerCase();
+  if(/розетк/.test(n))return{draw:"drawSocket",w:34,h:34,m:0.09,color:"var(--blue)"};
+  if(/выключател|переключател/.test(n))return{draw:"drawSwitch",w:30,h:30,m:0.09,color:"var(--blue)"};
+  if(/камер|видео/.test(n)&&!/регистратор/.test(n))return{draw:"drawCamDome",w:40,h:36,m:0.15,color:"var(--cyan)"};
+  if(/светильник|люстр|ламп|led|свет/.test(n))return{draw:"drawLamp",w:36,h:36,m:0.4,color:"var(--yel)"};
+  if(/автомат|узо|диф|щит|вру/.test(n))return{draw:"drawPanel",w:64,h:70,m:0.6,color:"var(--yel)"};
+  if(/регистратор|nvr/.test(n))return{draw:"drawNVR",w:64,h:34,m:0.44,color:"var(--purple)"};
+  if(/коммутатор|switch|роутер|маршрутиз/.test(n))return{draw:"drawRouter",w:44,h:30,m:0.3,color:"var(--cyan)"};
+  if(/датчик|сенсор|движен/.test(n))return{draw:"drawSensor",w:28,h:28,m:0.1,color:"var(--green)"};
+  if(/гофр|труб/.test(n))return{draw:"drawConduit",w:70,h:16,m:2,color:"var(--mut)"};
+  if(/лоток/.test(n))return{draw:"drawTray",w:80,h:20,m:2,color:"var(--mut)"};
+  if(/короб|канал/.test(n))return{draw:"drawBox",w:70,h:22,m:2,color:"var(--mut)"};
+  if(/кабел|ввг|utp|витая|коакс|провод/.test(n))return{draw:"drawCable",w:56,h:14,m:0.5,color:"var(--yel)"};
+  return{draw:"drawJbox",w:30,h:30,m:0.15,color:"var(--mut)"};}
+var ICON={drawPanel:'<rect x="6" y="4" width="20" height="22" rx="2"/><path d="M6 10h20"/>',
+ drawSocket:'<circle cx="16" cy="16" r="9"/><circle cx="13" cy="16" r="1.4"/><circle cx="19" cy="16" r="1.4"/>',
+ drawSwitch:'<circle cx="16" cy="16" r="9"/><path d="M7 16h18"/>',
+ drawLamp:'<circle cx="16" cy="16" r="9"/><path d="M10 10l12 12M22 10L10 22"/>',
+ drawCamDome:'<circle cx="16" cy="16" r="10"/><circle cx="16" cy="18" r="4"/><path d="M6 8h20"/>',
+ drawNVR:'<rect x="4" y="10" width="24" height="12" rx="2"/><path d="M8 16h16"/>',
+ drawRouter:'<rect x="5" y="12" width="22" height="10" rx="2"/><path d="M10 12l-3-6M22 12l3-6"/>',
+ drawSensor:'<circle cx="16" cy="16" r="9"/><circle cx="16" cy="16" r="4"/>',
+ drawConduit:'<path d="M5 12h22M5 20h22M5 12l4 8M11 12l4 8M17 12l4 8"/>',
+ drawTray:'<rect x="4" y="11" width="24" height="10"/><path d="M10 11v10M16 11v10M22 11v10"/>',
+ drawBox:'<rect x="5" y="10" width="22" height="12" rx="2"/><path d="M5 16h22"/>',
+ drawCable:'<path d="M4 16c5-8 9 8 14 0s9 8 10 0"/>',
+ drawJbox:'<rect x="9" y="9" width="14" height="14" rx="2"/><path d="M9 9l14 14M23 9L9 23"/>'};
+
+var asTimer=null;
+function scheduleAutoSave(){clearTimeout(asTimer);asTimer=setTimeout(doAutoSave,500);}
+function doAutoSave(){try{localStorage.setItem("shema_autosave",JSON.stringify({data:state,name:$("projName").value,ts:Date.now()}));}catch(e){}}
+window.addEventListener("pagehide",doAutoSave);
+document.addEventListener("visibilitychange",function(){if(document.hidden)doAutoSave();});
+function tryRestore(){try{var a=JSON.parse(localStorage.getItem("shema_autosave")||"null");
+  if(a&&a.data){state=a.data;if(state.includeWork===undefined)state.includeWork=false;
+    $("projName").value=a.name||"Новая схема";return true;}}catch(e){}return false;}
+
+var canvas=$("canvas"),ctx=canvas.getContext("2d"),wrap=$("canvasWrap");
+var W=0,H=0,DPR=window.devicePixelRatio||1;
+function resizeCanvas(){var nw=wrap.clientWidth,nh=wrap.clientHeight;
+  if(nw===W&&nh===H)return;W=nw;H=nh;
+  canvas.width=Math.max(1,Math.round(W*DPR));canvas.height=Math.max(1,Math.round(H*DPR));
+  canvas.style.width=W+"px";canvas.style.height=H+"px";draw();}
+window.addEventListener("resize",resizeCanvas);
+window.addEventListener("orientationchange",function(){setTimeout(resizeCanvas,120);});
+if(window.ResizeObserver){new ResizeObserver(function(){resizeCanvas();}).observe(wrap);}
+function screenToWorld(x,y){return{x:(x-ui.panX)/ui.zoom,y:(y-ui.panY)/ui.zoom};}
+function loadBgImg(){if(!state.bg||!state.bg.src)return;
+  if(bgImg&&bgImg.src===state.bg.src)return;bgImg=new Image();bgImg.onload=function(){draw();};bgImg.src=state.bg.src;}
+function roundRect(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);
+  c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();}
+function wirePxLen(pts){var L=0;for(var i=1;i<pts.length;i++)L+=Math.hypot(pts[i].x-pts[i-1].x,pts[i].y-pts[i-1].y);return L;}
+function wireLenM(w){return state.pxPerMeter?wirePxLen(w.points||[])/state.pxPerMeter:0;}
+function wireLenLabel(w){var nm=w.cableName||"Кабель";
+  if(state.pxPerMeter)return nm+" · "+(wirePxLen(w.points||[])/state.pxPerMeter).toFixed(1)+" м";return nm;}
+function wireMidpoint(pts){var total=wirePxLen(pts),target=total/2,acc=0;
+  for(var i=1;i<pts.length;i++){var seg=Math.hypot(pts[i].x-pts[i-1].x,pts[i].y-pts[i-1].y);
+    if(acc+seg>=target&&seg>0){var t=(target-acc)/seg;
+      return{x:pts[i-1].x+(pts[i].x-pts[i-1].x)*t,y:pts[i-1].y+(pts[i].y-pts[i-1].y)*t};}acc+=seg;}
+  return pts[0]||{x:0,y:0};}
+function wireAngleAtMid(pts){var total=wirePxLen(pts),target=total/2,acc=0;
+  for(var i=1;i<pts.length;i++){var seg=Math.hypot(pts[i].x-pts[i-1].x,pts[i].y-pts[i-1].y);
+    if(acc+seg>=target&&seg>0)return Math.atan2(pts[i].y-pts[i-1].y,pts[i].x-pts[i-1].x);
+    acc+=seg;}
+  return 0;}
+function elScaleOf(el){if(!el.m||!state.pxPerMeter)return 1;
+  var base=Math.max(el.w||40,el.h||40);return Math.max((el.m*state.pxPerMeter)/base,14/base);}
+function elSize(el){var k=elScaleOf(el)*(el.scale||1);return{w:(el.w||40)*k,h:(el.h||40)*k,k:k};}
+
+function draw(){ctx.setTransform(DPR,0,0,DPR,0,0);ctx.clearRect(0,0,W,H);drawGrid();
+  ctx.save();ctx.translate(ui.panX,ui.panY);ctx.scale(ui.zoom,ui.zoom);
+  try{
+    if(state.bg){if(bgImg&&bgImg.complete&&bgImg.src===state.bg.src)drawBg();else loadBgImg();}
+    state.rooms.forEach(drawRoom);state.wires.forEach(drawWire);
+    state.elements.forEach(drawElement);state.texts.forEach(drawText);
+    if(ui.wirePreview)drawWirePreview();
+    if(ui.roomStart&&ui.roomPreview)drawRoomPreview();
+    if(ui.rulerA)drawRulerPreview();
+  }finally{ctx.restore();}
+  updateInfo();}
+function drawGrid(){var step=20*ui.zoom;if(step<8)return;
+  ctx.save();ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue("--canvas-grid").trim();
+  ctx.lineWidth=1;ctx.globalAlpha=.55;var ox=ui.panX%step,oy=ui.panY%step;
+  ctx.beginPath();
+  for(var x=ox;x<W;x+=step){ctx.moveTo(x,0);ctx.lineTo(x,H);}
+  for(var y=oy;y<H;y+=step){ctx.moveTo(0,y);ctx.lineTo(W,y);}
+  ctx.stroke();ctx.restore();}
+function drawBg(){ctx.save();ctx.globalAlpha=state.bg.opacity==null?0.85:state.bg.opacity;
+  ctx.drawImage(bgImg,state.bg.x,state.bg.y,state.bg.w,state.bg.h);ctx.globalAlpha=1;ctx.restore();}
+var Drawers={
+ drawPanel:function(c,w,h){c.strokeRect(-w/2,-h/2,w,h);c.beginPath();c.moveTo(-w/2,-h/2+h*.22);c.lineTo(w/2,-h/2+h*.22);c.stroke();for(var i=0;i<3;i++)c.strokeRect(-w/2+8,-h/2+h*.34+i*(h*.2),w-16,h*.13);},
+ drawSocket:function(c,w,h){c.beginPath();c.arc(0,0,w/2,0,Math.PI*2);c.stroke();c.beginPath();c.arc(-5,0,2,0,Math.PI*2);c.stroke();c.beginPath();c.arc(5,0,2,0,Math.PI*2);c.stroke();},
+ drawSwitch:function(c,w,h){c.beginPath();c.arc(0,0,w/2,0,Math.PI*2);c.stroke();c.beginPath();c.moveTo(-w/2,0);c.lineTo(w/2,0);c.stroke();},
+ drawLamp:function(c,w,h){c.beginPath();c.arc(0,0,w/2,0,Math.PI*2);c.stroke();c.beginPath();c.moveTo(-w/2*.7,-h/2*.7);c.lineTo(w/2*.7,h/2*.7);c.moveTo(w/2*.7,-h/2*.7);c.lineTo(-w/2*.7,h/2*.7);c.stroke();},
+ drawCamDome:function(c,w,h){c.beginPath();c.arc(0,0,w/2,0,Math.PI*2);c.stroke();c.beginPath();c.arc(0,2,w/4,0,Math.PI*2);c.stroke();c.beginPath();c.moveTo(-w/2,-h/2+4);c.lineTo(w/2,-h/2+4);c.stroke();},
+ drawNVR:function(c,w,h){c.strokeRect(-w/2,-h/2,w,h);c.beginPath();c.moveTo(-w/2+8,0);c.lineTo(w/2-8,0);c.stroke();},
+ drawRouter:function(c,w,h){c.strokeRect(-w/2,-h/2,w,h);c.beginPath();c.moveTo(-w/2+10,-h/2);c.lineTo(-w/2+6,-h/2-8);c.moveTo(w/2-10,-h/2);c.lineTo(w/2-6,-h/2-8);c.stroke();},
+ drawSensor:function(c,w,h){c.beginPath();c.arc(0,0,w/2,0,Math.PI*2);c.stroke();c.beginPath();c.arc(0,0,w/4,0,Math.PI*2);c.stroke();},
+ drawConduit:function(c,w,h){c.beginPath();c.moveTo(-w/2,-h/2);c.lineTo(w/2,-h/2);c.moveTo(-w/2,h/2);c.lineTo(w/2,h/2);c.stroke();},
+ drawTray:function(c,w,h){c.strokeRect(-w/2,-h/2,w,h);c.beginPath();for(var i=1;i<4;i++){c.moveTo(-w/2+i*w/4,-h/2);c.lineTo(-w/2+i*w/4,h/2);}c.stroke();},
+ drawBox:function(c,w,h){c.strokeRect(-w/2,-h/2,w,h);c.beginPath();c.moveTo(-w/2,0);c.lineTo(w/2,0);c.stroke();},
+ drawCable:function(c,w,h){c.beginPath();c.moveTo(-w/2,0);c.bezierCurveTo(-w/6,-h,w/6,h,w/2,0);c.stroke();},
+ drawJbox:function(c,w,h){c.strokeRect(-w/2,-h/2,w,h);c.beginPath();c.moveTo(-w/2,-h/2);c.lineTo(w/2,h/2);c.moveTo(w/2,-h/2);c.lineTo(-w/2,h/2);c.stroke();}};
+function drawElement(el){var sz=elSize(el);var bw=el.w||40,bh=el.h||40,k=sz.k;
+  ctx.save();ctx.translate(el.x,el.y);ctx.rotate((el.rot||0)*Math.PI/180);
+  ctx.save();ctx.scale(k,k);
+  var color=el.color||"var(--ink)";
+  ctx.strokeStyle=resolveColor(color);ctx.fillStyle=resolveColor(color);
+  ctx.lineWidth=1.6/Math.max(k,0.25);ctx.lineCap="round";ctx.lineJoin="round";
+  if(el.draw&&Drawers[el.draw])Drawers[el.draw](ctx,bw,bh);
+  ctx.restore();
+  if(el.label){ctx.font="11px 'Golos Text',sans-serif";ctx.textAlign="center";
+    ctx.fillStyle=resolveColor("var(--mut)");ctx.fillText(el.label,0,sz.h/2+14);}
+  if(ui.selected&&ui.selected.kind==="element"&&ui.selected.id===el.id){
+    ctx.strokeStyle=resolveColor("var(--yel)");ctx.lineWidth=1.4;ctx.setLineDash([5,4]);
+    ctx.strokeRect(-sz.w/2-8,-sz.h/2-8,sz.w+16,sz.h+16+(el.label?16:0));ctx.setLineDash([]);}
+  ctx.restore();}
+function drawWire(w){var col=w.color||"var(--yel)";var pts=w.points||[];
+  ctx.save();ctx.strokeStyle=resolveColor(col);
+  ctx.lineWidth=w.width||ui.thick;ctx.lineCap="round";ctx.lineJoin="round";
+  ctx.beginPath();
+  if(pts.length){ctx.moveTo(pts[0].x,pts[0].y);for(var i=1;i<pts.length;i++)ctx.lineTo(pts[i].x,pts[i].y);}
+  ctx.stroke();
+  if(pts.length){[pts[0],pts[pts.length-1]].forEach(function(p){
+    ctx.beginPath();ctx.arc(p.x,p.y,(w.width||ui.thick)/2+1.5,0,Math.PI*2);
+    ctx.fillStyle=resolveColor(col);ctx.fill();});}
+  if(pts.length>=2){
+    var mid=wireMidpoint(pts);var label=wireLenLabel(w);
+    var ang=wireAngleAtMid(pts);
+    if(ang>Math.PI/2)ang-=Math.PI;
+    if(ang<-Math.PI/2)ang+=Math.PI;
+    var s=1/ui.zoom,f=9*s,pad=3*s;
+    ctx.save();ctx.translate(mid.x,mid.y);ctx.rotate(ang);
+    ctx.font=f+"px 'JetBrains Mono',monospace";
+    var tw=ctx.measureText(label).width;
+    var chipH=f+2*pad,y0=-(chipH+4*s);
+    ctx.fillStyle="rgba(20,21,26,.82)";
+    roundRect(ctx,-tw/2-pad,y0,tw+2*pad,chipH,3*s);ctx.fill();
+    ctx.strokeStyle=resolveColor(col);ctx.lineWidth=Math.max(1,1*s);ctx.stroke();
+    ctx.fillStyle="#fff";ctx.textAlign="center";ctx.textBaseline="middle";
+    ctx.fillText(label,0,y0+chipH/2);
+    ctx.restore();}
+  if(ui.selected&&ui.selected.kind==="wire"&&ui.selected.id===w.id){
+    pts.forEach(function(p){ctx.beginPath();ctx.arc(p.x,p.y,4,0,Math.PI*2);
+      ctx.fillStyle=resolveColor("var(--yel)");ctx.fill();});}
+  ctx.restore();}
+function drawText(t){ctx.save();ctx.translate(t.x,t.y);
+  ctx.font=(t.size||14)+"px 'Golos Text',sans-serif";
+  ctx.fillStyle=resolveColor(t.color||"var(--ink)");ctx.textAlign="center";ctx.fillText(t.text,0,0);ctx.restore();}
+function drawRoom(r){ctx.save();
+  ctx.fillStyle=resolveColor(r.color||"var(--blue)");ctx.globalAlpha=.07;
+  ctx.fillRect(r.x,r.y,r.w,r.h);ctx.globalAlpha=1;
+  ctx.strokeStyle=resolveColor(r.color||"var(--blue)");ctx.lineWidth=1.6;ctx.setLineDash([8,5]);
+  ctx.strokeRect(r.x,r.y,r.w,r.h);ctx.setLineDash([]);
+  if(r.label){var lbl=r.label;
+    if(state.pxPerMeter)lbl+=" · "+(r.w/state.pxPerMeter).toFixed(1)+"×"+(r.h/state.pxPerMeter).toFixed(1)+" м";
+    ctx.font="12px 'Golos Text',sans-serif";ctx.fillStyle=resolveColor(r.color||"var(--blue)");
+    ctx.textAlign="left";ctx.fillText(lbl,r.x+8,r.y+18);}
+  ctx.restore();}
+function drawWirePreview(){var col=ui.color||"var(--yel)";var pts=ui.wirePreview.points||[];
+  ctx.save();ctx.strokeStyle=resolveColor(col);ctx.lineWidth=ui.thick;ctx.setLineDash([6,4]);
+  ctx.lineCap="round";ctx.lineJoin="round";
+  if(pts.length){ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);
+    for(var i=1;i<pts.length;i++)ctx.lineTo(pts[i].x,pts[i].y);ctx.stroke();}
+  ctx.setLineDash([]);ctx.restore();updateWbLen();}
+function drawRoomPreview(){ctx.save();var p=ui.roomPreview;
+  ctx.strokeStyle=resolveColor("var(--blue)");ctx.lineWidth=1.6;ctx.setLineDash([8,5]);
+  ctx.strokeRect(p.x,p.y,p.w,p.h);ctx.setLineDash([]);ctx.restore();}
+function drawRulerPreview(){var a=ui.rulerA,b=ui.rulerB||ui.rulerHover;
+  ctx.save();
+  if(b){ctx.strokeStyle=resolveColor("var(--red)");ctx.lineWidth=2;ctx.setLineDash([6,4]);
+    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();ctx.setLineDash([]);
+    var L=Math.hypot(b.x-a.x,b.y-a.y);var s=1/ui.zoom;
+    ctx.font=(10*s)+"px 'JetBrains Mono',monospace";
+    ctx.fillStyle=resolveColor("var(--red)");ctx.textAlign="center";
+    ctx.fillText(state.pxPerMeter?(L/state.pxPerMeter).toFixed(2)+" м":fmt(Math.round(L))+" px",(a.x+b.x)/2,(a.y+b.y)/2-10*s);}
+  [a].concat(b?[b]:[]).forEach(function(p){ctx.beginPath();ctx.arc(p.x,p.y,4,0,Math.PI*2);ctx.fillStyle=resolveColor("var(--red)");ctx.fill();});
+  ctx.restore();}
+
+function findById(kind,id){
+  if(kind==="element")return state.elements.find(function(x){return x.id===id;});
+  if(kind==="wire")return state.wires.find(function(x){return x.id===id;});
+  if(kind==="text")return state.texts.find(function(x){return x.id===id;});
+  if(kind==="room")return state.rooms.find(function(x){return x.id===id;});
+  return null;}
+function getSelWire(){return (ui.selected&&ui.selected.kind==="wire")?findById("wire",ui.selected.id):null;}
+function hitTest(pos){
+  for(var i=state.texts.length-1;i>=0;i--){var t=state.texts[i];
+    ctx.font=(t.size||14)+"px 'Golos Text',sans-serif";var m=ctx.measureText(t.text);
+    if(pos.x>t.x-m.width/2-8&&pos.x<t.x+m.width/2+8&&pos.y>t.y-(t.size||14)-6&&pos.y<t.y+8)return{kind:"text",id:t.id};}
+  for(var j=state.elements.length-1;j>=0;j--){var el=state.elements[j],sz=elSize(el);
+    if(Math.abs(pos.x-el.x)<sz.w/2+8&&Math.abs(pos.y-el.y)<sz.h/2+8)return{kind:"element",id:el.id};}
+  var tol=clamp(18/ui.zoom,8,42);
+  for(var k=state.wires.length-1;k>=0;k--){var wp=state.wires[k],pts=wp.points||[];
+    for(var p=0;p<pts.length-1;p++)if(distToSeg(pos,pts[p],pts[p+1])<tol)return{kind:"wire",id:wp.id};}
+  for(var r=state.rooms.length-1;r>=0;r--){var rm=state.rooms[r];
+    if(pos.x>rm.x&&pos.x<rm.x+rm.w&&pos.y>rm.y&&pos.y<rm.y+rm.h)return{kind:"room",id:rm.id};}
+  return null;}
+function distToSeg(p,a,b){var dx=b.x-a.x,dy=b.y-a.y,L2=dx*dx+dy*dy;
+  if(!L2)return Math.hypot(p.x-a.x,p.y-a.y);
+  var t=clamp(((p.x-a.x)*dx+(p.y-a.y)*dy)/L2,0,1);
+  return Math.hypot(p.x-(a.x+t*dx),p.y-(a.y+t*dy));}
+
+function renderLibrary(){var box=$("libScroll");
+  var items=getElementCatalog();
+  var html='<div class="lib-hint">🔌 <b>Кабели и трассы</b> рисуются инструментом «Кабель». Объекты ниже добавляются тапом. Список — из прайса основного проекта.</div>';
+  var groups={};
+  items.forEach(function(it){var g=it.cat||"Прочее";(groups[g]=groups[g]||[]).push(it);});
+  Object.keys(groups).forEach(function(g){
+    html+='<div class="lib-group-t">'+esc(g)+'</div><div class="lib-grid">';
+    groups[g].forEach(function(it){var cl=classify(it.name);
+      html+='<div class="lib-item" data-itemid="'+esc(it.id)+'">'
+        +'<svg viewBox="0 0 32 32">'+(ICON[cl.draw]||ICON.drawJbox)+'</svg>'
+        +'<span>'+esc(it.name)+'</span></div>';});
+    html+='</div>';});
+  box.innerHTML=html;
+  box.querySelectorAll(".lib-item").forEach(function(el){
+    onTap(el,function(){placeElement(el.getAttribute("data-itemid"));});});}
+function placeElement(itemId){
+  var cat=getElementCatalog();var it=null;
+  for(var i=0;i<cat.length;i++){if(String(cat[i].id)===String(itemId)){it=cat[i];break;}}
+  if(!it){toast("Элемент не найден","err");return;}
+  var cl=classify(it.name);pushHistory();
+  var c=screenToWorld(W/2,H/2);
+  var el={id:uid(),itemId:it.id,itemName:it.name,itemPrice:+it.price||0,
+    x:c.x,y:c.y,rot:0,scale:1,label:"",draw:cl.draw,w:cl.w,h:cl.h,m:cl.m,color:cl.color};
+  state.elements.push(el);ui.selected={kind:"element",id:el.id};
+  draw();renderProps();renderSpec();toast("Добавлено: "+it.name,"ok");}
+
+function pushHistory(){var snap=JSON.stringify(state);
+  ui.history=ui.history.slice(0,ui.historyIdx+1);ui.history.push(snap);
+  if(ui.history.length>40)ui.history.shift();ui.historyIdx=ui.history.length-1;
+  scheduleAutoSave();}
+function undo(){if(ui.historyIdx<=0)return;ui.historyIdx--;
+  state=JSON.parse(ui.history[ui.historyIdx]);ui.selected=null;bgImg=null;
+  draw();renderProps();renderSpec();syncBgCard();scheduleAutoSave();}
+function redo(){if(ui.historyIdx>=ui.history.length-1)return;ui.historyIdx++;
+  state=JSON.parse(ui.history[ui.historyIdx]);ui.selected=null;bgImg=null;
+  draw();renderProps();renderSpec();syncBgCard();scheduleAutoSave();}
+
+function updateWireBarVisibility(){var editing=!!getSelWire();
+  var show=(ui.tool==="wire")||editing;
+  $("wireBar").classList.toggle("on",show);
+  var layShow=show&&state.includeWork;
+  $("layBar").classList.toggle("on",layShow);
+  $("wbLay").style.display=state.includeWork?"":"none";
+  $("wbDone").style.display=editing?"none":"inline-flex";
+  $("wbDelete").style.display=editing?"inline-flex":"none";
+  if(show)syncWireBar();}
+function syncWireBar(){var sw=getSelWire();
+  if(sw){$("wbCable").value=sw.cableId||"";$("wbColor").value=sw.color||"var(--yel)";
+    $("wbThick").value=String(sw.width||3.5);$("wbLay").value=sw.laying||"corr";}
+  else{$("wbCable").value=ui.cableId||"";$("wbColor").value=ui.color;$("wbThick").value=String(ui.thick);$("wbLay").value=ui.laying;}
+  updateWbLen();}
+function updateWbLen(){var el=$("wbLen");if(!el)return;
+  var sw=getSelWire();
+  if(sw){var L=wirePxLen(sw.points||[]);
+    el.textContent=state.pxPerMeter?"⤳ "+(L/state.pxPerMeter).toFixed(1)+" м":"⤳ "+fmt(Math.round(L))+" px";return;}
+  if(ui.wirePreview&&ui.wirePreview.points.length>=2){var L2=wirePxLen(ui.wirePreview.points);
+    el.textContent=state.pxPerMeter?"⤳ "+(L2/state.pxPerMeter).toFixed(1)+" м":"⤳ "+fmt(Math.round(L2))+" px";}
+  else el.textContent="";}
+function updateLayBar(){$("layBar").querySelectorAll(".lay-opt").forEach(function(b){
+  b.classList.toggle("active",b.getAttribute("data-lay")===ui.laying);});}
+function setLaying(v){ui.laying=v;$("wbLay").value=v;updateLayBar();
+  var sw=getSelWire();if(sw){sw.laying=v;renderCost();}draw();}
+function updateEditBar(){var sel=ui.selected;var bar=$("editBar");
+  var show=!!(sel&&(sel.kind==="element"||sel.kind==="room"||sel.kind==="text"));
+  bar.classList.toggle("on",show);
+  if(!show)return;
+  var obj=findById(sel.kind,sel.id);
+  if(!obj){bar.classList.remove("on");return;}
+  $("ebTitle").textContent= sel.kind==="element"?(obj.itemName||"Элемент"): sel.kind==="room"?"Помещение":"Текст";
+  $("ebSizeWrap").style.display= sel.kind==="element"?"flex":"none";
+  $("ebRot").style.display= sel.kind==="element"?"inline-flex":"none";
+  if(sel.kind==="element"){var pc=Math.round((obj.scale||1)*100);
+    $("ebSize").value=pc;$("ebSizeVal").textContent=pc+"%";}}
+function renderProps(){updateEditBar();updateWireBarVisibility();}
+
+function populateCableSelector(){var cats=getCableCatalog();var sc=$("wbCable");var h="";
+  cats.forEach(function(c){h+='<option value="'+esc(c.id)+'">'+esc(c.name)+'</option>';});
+  sc.innerHTML=h;
+  if(cats.length){ui.cableId=cats[0].id;ui.cableName=cats[0].name;
+    ui.color=cats[0].trade==="video"?"var(--cyan)":"var(--yel)";}}
+
+(function(){
+  var hc="";for(var c in WIRE_COLORS)hc+='<option value="'+c+'"'+(c==="var(--yel)"?' selected':'')+'>'+WIRE_COLORS[c]+'</option>';
+  $("wbColor").innerHTML=hc;
+  $("wbCable").addEventListener("change",function(){var sw=getSelWire();
+    var cats=getCableCatalog();var it=null;
+    for(var i=0;i<cats.length;i++)if(String(cats[i].id)===String(this.value)){it=cats[i];break;}
+    if(sw&&it){sw.cableId=it.id;sw.cableName=it.name;sw.cablePrice=lookupCablePrice(it.id,it.name);renderCost();draw();}
+    else if(it){ui.cableId=it.id;ui.cableName=it.name;
+      ui.color=it.trade==="video"?"var(--cyan)":"var(--yel)";$("wbColor").value=ui.color;draw();}});
+  $("wbLay").addEventListener("change",function(){setLaying(this.value);});
+  $("wbColor").addEventListener("change",function(){var sw=getSelWire();
+    if(sw){sw.color=this.value;renderCost();draw();}else{ui.color=this.value;draw();}});
+  $("wbThick").addEventListener("change",function(){var sw=getSelWire();
+    if(sw){sw.width=parseFloat(this.value);draw();}else{ui.thick=parseFloat(this.value);draw();}});
+  $("wbDone").addEventListener("click",function(){if(ui.tool==="wire")finishWire();});
+  $("wbDelete").addEventListener("click",function(){deleteSelected();});
+  $("wbCancel").addEventListener("click",function(){
+    if(getSelWire()){ui.selected=null;renderProps();draw();}
+    else{ui.wirePreview=null;ui.lastWireTap=null;updateWbLen();draw();}});
+  $("layBar").querySelectorAll(".lay-opt").forEach(function(b){
+    onTap(b,function(){setLaying(b.getAttribute("data-lay"));});});
+  $("ebLabel").addEventListener("click",editLabelModal);
+  $("ebRot").addEventListener("click",function(){var sel=ui.selected;if(!sel)return;
+    var o=findById(sel.kind,sel.id);if(o&&sel.kind==="element"){o.rot=((o.rot||0)+90)%360;draw();}});
+  $("ebSize").addEventListener("input",function(){var sel=ui.selected;if(!sel)return;
+    var o=findById(sel.kind,sel.id);if(o&&sel.kind==="element"){
+      o.scale=parseFloat(this.value)/100;$("ebSizeVal").textContent=this.value+"%";draw();}});
+  $("ebDel").addEventListener("click",function(){deleteSelected();});
+  $("ebClose").addEventListener("click",function(){ui.selected=null;renderProps();draw();});
+})();
+function editLabelModal(){var sel=ui.selected;if(!sel)return;
+  var obj=findById(sel.kind,sel.id);if(!obj)return;
+  var cur= sel.kind==="text"?obj.text:(obj.label||"");
+  openModal('<h3>'+(sel.kind==="text"?"Текст":"Метка")+'</h3>'
+    +'<div class="prop-row"><label>Подпись</label><input class="inp" id="lblInput" value="'+esc(cur)+'"></div>'
+    +'<div class="modal-foot"><button class="btn btn-ghost" data-mact="close">Отмена</button><button class="btn btn-amber" data-mact="lblOk">Сохранить</button></div>',
+    {lblOk:function(){var v=$("lblInput").value;
+      if(sel.kind==="text")obj.text=v;else obj.label=v;closeModal();draw();}});}
+
+function setTool(tool){ui.tool=tool;
+  document.querySelectorAll(".tool-btn[data-tool]").forEach(function(b){
+    b.classList.toggle("active",b.getAttribute("data-tool")===tool);});
+  if(tool==="wire"){ui.selected=null;}
+  if(tool!=="wire"){ui.wirePreview=null;ui.lastWireTap=null;}
+  if(tool!=="ruler"){ui.rulerA=null;ui.rulerB=null;ui.rulerHover=null;}
+  if(tool==="ruler")toast("Калибровка: поставьте 2 точки на отрезке известной длины");
+  renderProps();draw();}
+document.querySelectorAll(".tool-btn[data-tool]").forEach(function(b){
+  onTap(b,function(){setTool(b.getAttribute("data-tool"));});});
+
+/* в режиме кабеля помещение/текст НЕ перехватывают клик — трасса рисуется свободно */
+function handleWireToolTap(pos){
+  if(!ui.wirePreview){var hit=hitTest(pos);
+    if(hit&&(hit.kind==="element"||hit.kind==="wire")){
+      ui.selected=hit;ui.tool="select";
+      document.querySelectorAll(".tool-btn[data-tool]").forEach(function(b){
+        b.classList.toggle("active",b.getAttribute("data-tool")==="select");});
+      renderProps();draw();return;}}
+  wireTap(pos);}
+function wireTap(pos){var now=Date.now();
+  if(ui.lastWireTap&&now-ui.lastWireTap.t<350&&Math.hypot(pos.x-ui.lastWireTap.x,pos.y-ui.lastWireTap.y)<15){
+    if(ui.wirePreview&&ui.wirePreview.points.length>1)ui.wirePreview.points.pop();
+    ui.lastWireTap=null;finishWire();return;}
+  ui.lastWireTap={x:pos.x,y:pos.y,t:now};
+  if(!ui.wirePreview)ui.wirePreview={points:[{x:pos.x,y:pos.y}]};
+  else ui.wirePreview.points.push({x:pos.x,y:pos.y});
+  draw();}
+function finishWire(){if(ui.wirePreview&&ui.wirePreview.points.length>=2){
+    pushHistory();var newId=uid();
+    var cp=lookupCablePrice(ui.cableId,ui.cableName);
+    state.wires.push({id:newId,points:ui.wirePreview.points.slice(),
+      cableId:ui.cableId,cableName:ui.cableName,cablePrice:cp,laying:ui.laying,
+      width:ui.thick,color:ui.color,style:"solid"});
+    var lenMsg=state.pxPerMeter?(wirePxLen(ui.wirePreview.points)/state.pxPerMeter).toFixed(1)+" м":"откалибруйте 📏";
+    toast("Проложено: "+(ui.cableName||"кабель")+" · "+lenMsg,"ok");
+    ui.wirePreview=null;ui.lastWireTap=null;
+    ui.selected={kind:"wire",id:newId};ui.tool="select";
+    document.querySelectorAll(".tool-btn[data-tool]").forEach(function(b){
+      b.classList.toggle("active",b.getAttribute("data-tool")==="select");});
+    renderSpec();renderProps();draw();return;}
+  ui.wirePreview=null;ui.lastWireTap=null;updateWbLen();draw();}
+function rulerTap(pos){if(!ui.rulerA){ui.rulerA=pos;ui.rulerB=null;}
+  else{ui.rulerB=pos;draw();
+    var pxLen=Math.hypot(ui.rulerB.x-ui.rulerA.x,ui.rulerB.y-ui.rulerA.y);
+    ui.rulerA=null;ui.rulerB=null;showCalibModal(pxLen);}
+  draw();}
+function showCalibModal(pxLen){
+  openModal('<h3>Калибровка масштаба</h3>'
+    +'<p style="color:var(--mut);font-size:13.5px;margin-bottom:14px">Отрезок <b class="mono" style="color:var(--ink)">'+fmt(Math.round(pxLen))+' px</b>. Введите его реальную длину в метрах.</p>'
+    +'<div class="prop-row"><label>Длина, метров</label><input class="inp" id="calibM" type="number" step="0.01" min="0.01" inputmode="decimal" placeholder="3.5"></div>'
+    +'<div class="modal-foot"><button class="btn btn-ghost" data-mact="close">Отмена</button><button class="btn btn-amber" data-mact="calibOk">Установить</button></div>',
+    {calibOk:function(){var m=parseFloat($("calibM").value);
+      if(!m||m<=0){toast("Введите длину","err");return;}
+      state.pxPerMeter=pxLen/m;closeModal();setTool("select");
+      draw();renderProps();renderSpec();
+      toast("Масштаб: 1 м = "+state.pxPerMeter.toFixed(1)+" px","ok");}});}
+function textTap(pos){ui.pendingTextPos=pos;
+  openModal('<h3>Добавить текст</h3>'
+    +'<div class="prop-row"><label>Текст подписи</label><input class="inp" id="txtInput" placeholder="Подпись"></div>'
+    +'<div class="modal-foot"><button class="btn btn-ghost" data-mact="close">Отмена</button><button class="btn btn-amber" data-mact="txtOk">Добавить</button></div>',
+    {txtOk:function(){var v=$("txtInput").value.trim();
+      if(v&&ui.pendingTextPos){pushHistory();
+        state.texts.push({id:uid(),x:ui.pendingTextPos.x,y:ui.pendingTextPos.y,text:v,size:14,color:"var(--ink)"});
+        draw();renderSpec();toast("Текст добавлен","ok");}
+      ui.pendingTextPos=null;closeModal();setTool("select");}});
+  setTimeout(function(){var i=$("txtInput");if(i)i.focus();},60);}
+
+var isPanning=false,lastPan=null;
+function down(sx,sy){var pos=screenToWorld(sx,sy);
+  if(ui.tool==="select"){var hit=hitTest(pos);
+    if(hit){ui.selected=hit;var obj=findById(hit.kind,hit.id);
+      if(obj){pushHistory();ui.dragging={kind:hit.kind,obj:obj,startX:pos.x,startY:pos.y,origX:obj.x,origY:obj.y};}
+      draw();renderProps();}
+    else{ui.selected=null;renderProps();draw();isPanning=true;lastPan={x:sx,y:sy};}}
+  else if(ui.tool==="room"){ui.roomStart=pos;ui.roomPreview={x:pos.x,y:pos.y,w:0,h:0};}
+  else if(ui.tool==="text"){textTap(pos);}}
+function move(sx,sy){var pos=screenToWorld(sx,sy);
+  if(isPanning&&lastPan){ui.panX+=sx-lastPan.x;ui.panY+=sy-lastPan.y;lastPan={x:sx,y:sy};draw();return;}
+  if(ui.dragging){var d=ui.dragging;d.obj.x=d.origX+(pos.x-d.startX);d.obj.y=d.origY+(pos.y-d.startY);draw();return;}
+  if(ui.tool==="wire"&&ui.wirePreview){var lp=ui.wirePreview.points;lp[lp.length-1]={x:pos.x,y:pos.y};draw();return;}
+  if(ui.tool==="ruler"&&ui.rulerA){ui.rulerHover=pos;draw();return;}
+  if(ui.roomStart&&ui.roomPreview){
+    ui.roomPreview={x:Math.min(ui.roomStart.x,pos.x),y:Math.min(ui.roomStart.y,pos.y),
+      w:Math.abs(pos.x-ui.roomStart.x),h:Math.abs(pos.y-ui.roomStart.y)};draw();}}
+function up(){if(isPanning){isPanning=false;lastPan=null;return;}
+  if(ui.dragging){ui.dragging=null;renderProps();return;}
+  if(ui.roomStart&&ui.roomPreview)confirmRoom();}
+function confirmRoom(){var rp=ui.roomPreview;
+  if(rp&&rp.w>20&&rp.h>20){pushHistory();var lbl=prompt("Название помещения:","Помещение");
+    state.rooms.push({id:uid(),x:rp.x,y:rp.y,w:rp.w,h:rp.h,label:lbl||"",color:"var(--blue)"});renderSpec();}
+  ui.roomStart=null;ui.roomPreview=null;draw();}
+
+canvas.addEventListener("mousedown",function(e){var r=canvas.getBoundingClientRect();
+  var sx=e.clientX-r.left,sy=e.clientY-r.top;if(e.button!==0)return;
+  var pos=screenToWorld(sx,sy);
+  if(ui.tool==="wire"){handleWireToolTap(pos);return;}
+  if(ui.tool==="ruler"){rulerTap(pos);return;}
+  down(sx,sy);});
+canvas.addEventListener("mousemove",function(e){var r=canvas.getBoundingClientRect();move(e.clientX-r.left,e.clientY-r.top);});
+canvas.addEventListener("mouseup",function(){up();});
+canvas.addEventListener("wheel",function(e){e.preventDefault();
+  var r=canvas.getBoundingClientRect(),sx=e.clientX-r.left,sy=e.clientY-r.top,oz=ui.zoom;
+  ui.zoom=clamp(ui.zoom*(e.deltaY<0?1.12:0.89),.25,3);
+  ui.panX=sx-(sx-ui.panX)*(ui.zoom/oz);ui.panY=sy-(sy-ui.panY)*(ui.zoom/oz);
+  $("zoomPct").textContent=Math.round(ui.zoom*100)+"%";draw();},{passive:false});
+
+var touchState={mode:null};
+function tPt(t){var r=canvas.getBoundingClientRect();return{x:t.clientX-r.left,y:t.clientY-r.top};}
+function pinchData(ts){var a=tPt(ts[0]),b=tPt(ts[1]);
+  return{d:Math.hypot(a.x-b.x,a.y-b.y),mx:(a.x+b.x)/2,my:(a.y+b.y)/2};}
+canvas.addEventListener("touchstart",function(e){e.preventDefault();
+  if(e.touches.length===2){var p=pinchData(e.touches);
+    touchState={mode:"pinch",d0:p.d,z0:ui.zoom,wm:screenToWorld(p.mx,p.my)};
+    ui.dragging=null;isPanning=false;return;}
+  if(e.touches.length===1){var t=tPt(e.touches[0]);
+    touchState={mode:"press",startT:{x:t.x,y:t.y},moved:false};
+    if(ui.tool==="wire"||ui.tool==="ruler"||ui.tool==="text")return;down(t.x,t.y);}},{passive:false});
+canvas.addEventListener("touchmove",function(e){e.preventDefault();
+  if(touchState.mode==="pinch"&&e.touches.length===2){var p=pinchData(e.touches);
+    ui.zoom=clamp(touchState.z0*p.d/touchState.d0,.25,3);
+    ui.panX=p.mx-touchState.wm.x*ui.zoom;ui.panY=p.my-touchState.wm.y*ui.zoom;
+    $("zoomPct").textContent=Math.round(ui.zoom*100)+"%";draw();return;}
+  if(e.touches.length===1&&touchState.mode==="press"){var t=tPt(e.touches[0]);
+    if(Math.hypot(t.x-touchState.startT.x,t.y-touchState.startT.y)>8)touchState.moved=true;
+    if(ui.tool!=="wire"&&ui.tool!=="ruler"&&ui.tool!=="text")move(t.x,t.y);}},{passive:false});
+canvas.addEventListener("touchend",function(e){e.preventDefault();
+  if(touchState.mode==="pinch"){if(e.touches.length<2)touchState={mode:null};return;}
+  if(touchState.mode!=="press")return;
+  var t=tPt(e.changedTouches[0]),isTap=!touchState.moved,pos=screenToWorld(t.x,t.y);
+  if(ui.tool==="wire"){if(isTap)handleWireToolTap(pos);}
+  else if(ui.tool==="ruler"){if(isTap)rulerTap(pos);}
+  else if(ui.tool==="text"){if(isTap)textTap(pos);}
+  else up();
+  touchState={mode:null};},{passive:false});
+
+document.addEventListener("keydown",function(e){
+  if(e.target.tagName==="INPUT"||e.target.tagName==="TEXTAREA")return;
+  var k=e.key.toLowerCase();
+  if(k==="v"||k==="м")setTool("select");
+  if(k==="w"||k==="ц")setTool("wire");
+  if(k==="r"||k==="к")setTool("room");
+  if(k==="t"||k==="е")setTool("text");
+  if(k==="m"||k==="ь")setTool("ruler");
+  if((e.ctrlKey||e.metaKey)&&k==="z"){e.preventDefault();undo();}
+  if((e.ctrlKey||e.metaKey)&&k==="y"){e.preventDefault();redo();}
+  if((e.key==="Delete"||e.key==="Backspace")&&ui.selected)deleteSelected();});
+
+function deleteSelected(){if(!ui.selected)return;pushHistory();
+  var k=ui.selected.kind,id=ui.selected.id;
+  if(k==="element")state.elements=state.elements.filter(function(x){return x.id!==id;});
+  if(k==="wire")state.wires=state.wires.filter(function(x){return x.id!==id;});
+  if(k==="text")state.texts=state.texts.filter(function(x){return x.id!==id;});
+  if(k==="room")state.rooms=state.rooms.filter(function(x){return x.id!==id;});
+  ui.selected=null;draw();renderProps();renderSpec();toast("Удалено","err");}
+
+function cableTotals(){var tot={};
+  state.wires.forEach(function(w){var nm=w.cableName||"Кабель";tot[nm]=(tot[nm]||0)+wireLenM(w);});
+  return tot;}
+function elementCounts(){var counts={};
+  state.elements.forEach(function(el){var nm=el.itemName||"Элемент";
+    if(!counts[nm])counts[nm]={n:0,price:+el.itemPrice||0};
+    counts[nm].n++;});
+  return counts;}
+
+/* спецификация: элементы поштучно (удаление по одному), кабели — метражом */
+function renderSpec(){
+  var html="",n=0;
+  state.elements.forEach(function(el){n++;
+    var nm=el.itemName||"Элемент";
+    html+='<div class="spec-item"><div class="si-nm" data-full="'+esc(nm)+'">'+esc(nm)+'</div>'
+      +'<button class="si-del" data-elid="'+el.id+'">✕</button></div>';});
+  var tot=cableTotals();
+  Object.keys(tot).forEach(function(nm){n++;
+    html+='<div class="spec-item"><div class="si-nm" data-full="'+esc(nm)+'">'+esc(nm)+'</div>'
+      +'<div class="si-ct">'+(state.pxPerMeter?tot[nm].toFixed(1)+" м":"—")+'</div>'
+      +'<button class="si-del" data-delcable="'+esc(nm)+'">✕</button></div>';});
+  if(!html)html='<div class="empty-prop">Схема пуста</div>';
+  $("specList").innerHTML=html;$("specCount").textContent=n+" поз.";
+  $("specList").querySelectorAll(".si-del[data-elid]").forEach(function(b){
+    onTap(b,function(){var id=b.getAttribute("data-elid");
+      pushHistory();
+      state.elements=state.elements.filter(function(x){return x.id!==id;});
+      draw();renderSpec();toast("Удалено","err");});});
+  $("specList").querySelectorAll(".si-del[data-delcable]").forEach(function(b){
+    onTap(b,function(){var cn=b.getAttribute("data-delcable");
+      if(confirm("Удалить все трассы «"+cn+"»?")){pushHistory();
+        state.wires=state.wires.filter(function(w){return w.cableName!==cn;});
+        draw();renderSpec();toast("Удалено","err");}});});
+  renderCost();}
+
+/* смета: работа прокладки считается по базовой ставке, способ — в скобках */
+function buildEstimateRows(){var rows=[];var pl=getPricelist();var inc=state.includeWork;
+  state.wires.forEach(function(w){
+    var len=wireLenM(w);if(len<=0)return;
+    rows.push({name:w.cableName||"Кабель",kind:"material",unit:"м.п.",qty:len,price:w.cablePrice||0});
+    if(inc){
+      var L=LAYING[w.laying||"open"];
+      if(L.matKw.length){var lm=matchItem(pl,L.matKw,"material");
+        if(lm)rows.push({name:lm.name,kind:"material",unit:"м.п.",qty:len,price:+lm.price||0});}
+      if(L.clipKw.length){var fm=matchItem(pl,L.clipKw,"material");
+        if(fm)rows.push({name:fm.name,kind:"material",unit:"м.п.",qty:len,price:+fm.price||0});}
+      var cw=matchItem(pl,["прокладка кабеля","монтаж кабеля","прокладка","открытая прокладка","открытая"],"work");
+      if(cw)rows.push({name:"Прокладка кабеля ("+L.label+")",kind:"work",unit:"м.п.",qty:len,price:+cw.price||0});
+      if(L.workKw.length){var lw=matchItem(pl,L.workKw,"work");
+        if(lw)rows.push({name:lw.name,kind:"work",unit:"м.п.",qty:len,price:+lw.price||0});}}});
+  var counts=elementCounts();
+  Object.keys(counts).forEach(function(nm){var c=counts[nm];
+    rows.push({name:nm,kind:"material",unit:"шт.",qty:c.n,price:c.price||0});
+    if(inc&&pl.length){var wi=matchItem(pl,["монтаж "+nm,"установка "+nm],"work");
+      if(wi)rows.push({name:wi.name,kind:"work",unit:"шт.",qty:c.n,price:+wi.price||0});}});
+  return aggregateRows(rows);}
+function aggregateRows(rows){var map={};
+  rows.forEach(function(r){var k=r.kind+"|"+r.name;
+    if(!map[k])map[k]={name:r.name,kind:r.kind,unit:r.unit,qty:0,price:r.price,sum:0};
+    map[k].qty+=r.qty;map[k].sum+=r.qty*r.price;
+    if(r.price&&!map[k].price)map[k].price=r.price;});
+  return Object.keys(map).map(function(k){return map[k];});}
+function renderCost(){var pl=getPricelist();var box=$("costList");
+  if(!pl.length){box.innerHTML='<div class="empty-prop">Прайс-лист не найден.<br>Откройте и сохраните проект в index.html — цены берутся из его прайса.</div>';
+    $("costTotal").textContent="";$("costKind").textContent="";return;}
+  var rows=buildEstimateRows();var total=0;var html="";
+  if(!rows.length)html='<div class="empty-prop">Добавьте кабели и объекты</div>';
+  rows.forEach(function(r){total+=r.sum;
+    html+='<div class="spec-item"><span class="si-kind '+(r.kind==="work"?"work":"mat")+'">'+(r.kind==="work"?"работа":"матер.")+'</span>'
+      +'<div class="si-nm" data-full="'+esc(r.name)+'">'+esc(r.name)+'</div>'
+      +'<div class="si-ct">'+(Math.round(r.qty*10)/10)+' '+esc(r.unit)+'</div>'
+      +'<div class="si-ct" style="min-width:64px;text-align:right">'+fmt(Math.round(r.sum))+' ₽</div></div>';});
+  box.innerHTML=html;
+  $("costTotal").textContent="Итого: "+fmt(Math.round(total))+" ₽";
+  $("costKind").textContent=state.includeWork?"материалы + работы":"только материалы";}
+
+function openToProjectModal(){var ms=findMainState();
+  var html='<h3>Отправить в проект</h3>';
+  if(!ms){html+='<div class="empty-prop">Основное приложение (index.html) не найдено на этом домене.<br>Разместите оба файла на одном домене (например, GitHub Pages).</div>'
+    +'<div class="modal-foot"><button class="btn btn-ghost" data-mact="close">Закрыть</button></div>';
+    openModal(html,{});return;}
+  var projects=ms.data.projects||[];
+  html+='<div class="proj-list-m">';
+  if(!projects.length)html+='<div class="empty-prop">В основном приложении нет проектов</div>';
+  projects.forEach(function(p){html+='<div class="proj-m-item" data-mact="pickProj" data-pid="'+esc(p.id)+'">'
+    +'<div style="flex:1;min-width:0"><div class="pm-nm">'+esc(p.name)+'</div>'
+    +'<div class="pm-sub">'+(p.address||'')+'</div></div></div>';});
+  html+='</div>'
+    +'<div class="prop-row"><label>или создать новый проект</label><input class="inp" id="newMainProj" placeholder="Название нового проекта"></div>'
+    +'<div class="modal-foot"><button class="btn btn-ghost" data-mact="close">Отмена</button>'
+    +'<button class="btn btn-amber" data-mact="createMainProj">+ Создать и отправить</button></div>';
+  openModal(html,{});}
+function writeEstimateTo(md,proj){
+  if(!md.estimates[proj.id])md.estimates[proj.id]={discount:0,regionK:1,note:"",rows:[]};
+  var est=md.estimates[proj.id];
+  est.rows=est.rows.filter(function(r){return !r.fromShema;});
+  var rows=buildEstimateRows();
+  rows.forEach(function(r){
+    est.rows.push({id:"sh"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+      name:r.name,kind:r.kind,unit:r.unit,qty:Math.round(r.qty*10)/10,price:Math.round(r.price),
+      trade:"elektro",fromShema:true});});}
+function sendToMainProject(pid){var ms=findMainState();if(!ms){toast("Приложение не найдено","err");return;}
+  var md=ms.data;var proj=(md.projects||[]).find(function(x){return String(x.id)===String(pid);});
+  if(!proj){toast("Проект не найден","err");return;}
+  writeEstimateTo(md,proj);
+  try{localStorage.setItem(ms.key,JSON.stringify(md));}catch(e){}
+  state.mainProjectId=proj.id;updateLinked();closeModal();
+  toast("✓ Добавлено в смету «"+proj.name+"»","ok");}
+function createAndSendMainProject(){var inp=$("newMainProj");
+  var nm=inp?inp.value.trim():"";
+  if(!nm){toast("Введите название проекта","err");return;}
+  var ms=findMainState();if(!ms){toast("Приложение не найдено","err");return;}
+  var md=ms.data;if(!md.projects)md.projects=[];
+  var ts=0;md.projects.forEach(function(p){if((p.ts||0)>ts)ts=p.ts||0;});
+  var proj={id:"p"+Date.now().toString(36),name:nm,client:"",phone:"",address:"",type:"elektro",
+    status:"active",dateStart:"",dateEnd:"",notes:"Из конструктора схем",createdAt:"",ts:ts+1,photos:[]};
+  md.projects.push(proj);
+  writeEstimateTo(md,proj);
+  try{localStorage.setItem(ms.key,JSON.stringify(md));}catch(e){}
+  state.mainProjectId=proj.id;updateLinked();closeModal();
+  toast("✓ Создан проект «"+nm+"» и заполнена смета","ok");}
+/* обновить смету уже привязанного проекта без повторного выбора */
+function updateEstimate(){
+  if(!state.mainProjectId){toast("Сначала выберите проект","err");return;}
+  var ms=findMainState();if(!ms){toast("Приложение не найдено","err");return;}
+  var md=ms.data;var proj=(md.projects||[]).find(function(x){return String(x.id)===String(state.mainProjectId);});
+  if(!proj){toast("Проект не найден — выберите заново","err");state.mainProjectId=null;updateLinked();return;}
+  writeEstimateTo(md,proj);
+  try{localStorage.setItem(ms.key,JSON.stringify(md));}catch(e){}
+  toast("✓ Смета «"+proj.name+"» обновлена","ok");}
+function updateLinked(){var el=$("linkedProj");var upd=$("btnUpdateEstimate");
+  if(!state.mainProjectId){el.textContent="не привязано";upd.style.display="none";return;}
+  var ms=findMainState();var pname=null;
+  if(ms){var p=(ms.data.projects||[]).find(function(x){return String(x.id)===String(state.mainProjectId);});
+    if(p){pname=p.name;}}
+  if(pname){el.textContent="✓ "+pname;upd.style.display="inline-flex";}
+  else{el.textContent="проект не найден";upd.style.display="none";}}
+
+function syncWorkToggle(){$("workToggle").checked=!!state.includeWork;}
+$("workToggle").addEventListener("change",function(){state.includeWork=this.checked;
+  renderCost();updateWireBarVisibility();scheduleAutoSave();});
+$("btnUpdateEstimate").addEventListener("click",updateEstimate);
+
+var modalHandlers={};
+function openModal(html,handlers){$("modal").innerHTML=html;modalHandlers=handlers||{};$("overlay").classList.add("on");}
+function closeModal(){$("overlay").classList.remove("on");modalHandlers={};}
+function modalAction(ev){var b=ev.target.closest("[data-mact]");if(!b)return;
+  var act=b.getAttribute("data-mact");
+  if(act==="close"){closeModal();return;}
+  if(act==="pickProj"){sendToMainProject(b.getAttribute("data-pid"));return;}
+  if(act==="createMainProj"){createAndSendMainProject();return;}
+  if(act==="openSchema"){openSchemaByName(b.getAttribute("data-k"));return;}
+  if(act==="delSchema"){delSchemaByName(b.getAttribute("data-k"));return;}
+  if(modalHandlers[act])modalHandlers[act]();}
+$("modal").addEventListener("click",modalAction);
+$("modal").addEventListener("touchend",function(e){
+  var b=e.target.closest("[data-mact]");if(!b)return;
+  e.preventDefault();modalAction(e);});
+$("overlay").addEventListener("mousedown",function(e){if(e.target.id==="overlay")closeModal();});
+
+function getStore(){try{return JSON.parse(localStorage.getItem("shema_projects")||"{}");}catch(e){return{};}}
+function setStore(o){localStorage.setItem("shema_projects",JSON.stringify(o));}
+function renderProjList(){var store=getStore(),keys=Object.keys(store);
+  var html='<option value="">— сохранённые схемы —</option>';
+  keys.sort(function(a,b){return store[b].ts-store[a].ts;});
+  keys.forEach(function(k){html+='<option value="'+esc(k)+'">'+esc(k)+'</option>';});
+  $("projList").innerHTML=html;}
+function openSchemaModal(){var store=getStore(),keys=Object.keys(store);
+  keys.sort(function(a,b){return store[b].ts-store[a].ts;});
+  var html='<h3>Проекты схем</h3><div class="proj-list-m">';
+  if(!keys.length)html+='<div class="empty-prop">Нет сохранённых схем</div>';
+  keys.forEach(function(k){html+='<div class="proj-m-item" data-mact="openSchema" data-k="'+esc(k)+'">'
+    +'<div style="flex:1;min-width:0"><div class="pm-nm">'+esc(k)+'</div>'
+    +'<div class="pm-sub">'+new Date(store[k].ts).toLocaleString("ru")+'</div></div>'
+    +'<button class="btn btn-red btn-sm" data-mact="delSchema" data-k="'+esc(k)+'" style="width:auto">✕</button></div>';});
+  html+='</div><div class="prop-row"><label>Создать новую схему</label><input class="inp" id="newProjName" placeholder="Название"></div>'
+    +'<div class="modal-foot"><button class="btn btn-ghost" data-mact="close">Закрыть</button>'
+    +'<button class="btn btn-amber" data-mact="createSchema">+ Создать</button></div>';
+  openModal(html,{createSchema:function(){
+    var nm=$("newProjName").value.trim();if(!nm){toast("Введите название","err");return;}
+    pushHistory();state={elements:[],wires:[],texts:[],rooms:[],bg:null,pxPerMeter:0,mainProjectId:null,includeWork:state.includeWork};
+    bgImg=null;ui.bgBase=null;$("projName").value=nm;ui.selected=null;
+    draw();renderProps();renderSpec();syncBgCard();closeModal();toast("Создана схема: "+nm,"ok");}});}
+function openSchemaByName(k){var st=getStore();if(!st[k])return;
+  pushHistory();state=st[k].data;$("projName").value=k;
+  if(state.includeWork===undefined)state.includeWork=false;
+  bgImg=null;ui.bgBase=state.bg?state.bg.w:null;ui.selected=null;
+  draw();renderProps();renderSpec();syncBgCard();updateLinked();syncWorkToggle();closeModal();toast("Открыто: "+k,"ok");}
+function delSchemaByName(k){if(!confirm("Удалить схему «"+k+"»?"))return;
+  var st=getStore();delete st[k];setStore(st);openSchemaModal();toast("Удалено","err");}
+
+$("btnSave").addEventListener("click",function(){
+  var name=$("projName").value.trim()||"Без названия";
+  var store=getStore();store[name]={data:state,ts:Date.now()};
+  try{setStore(store);doAutoSave();toast("Сохранено: "+name,"ok");}catch(e){toast("Не хватает места","err");}
+  renderProjList();});
+$("btnLoad").addEventListener("click",function(){
+  var sel=$("projList").value;if(!sel){toast("Выберите схему","err");return;}
+  openSchemaByName(sel);});
+$("btnProjModal").addEventListener("click",openSchemaModal);
+$("btnToProject").addEventListener("click",openToProjectModal);
+
+function syncBgCard(){$("bgCard").style.display=state.bg?"block":"none";
+  if(state.bg){
+    $("bgOp").value=Math.round((state.bg.opacity==null?0.85:state.bg.opacity)*100);
+    $("bgOpVal").textContent=$("bgOp").value+"%";
+    if(ui.bgBase){var pct=Math.round(state.bg.w/ui.bgBase*100);
+      $("bgScale").value=clamp(pct,10,400);$("bgScaleVal").textContent=pct+"%";}}}
+function openBgPicker(){$("bgFile").click();}
+$("btnBg").addEventListener("click",openBgPicker);
+$("btnBgMb").addEventListener("click",openBgPicker);
+$("bgFile").addEventListener("change",function(e){var file=e.target.files[0];if(!file)return;
+  if(file.size>10*1024*1024){toast("Файл слишком большой (макс 10 МБ)","err");return;}
+  var rd=new FileReader();
+  rd.onload=function(){var img=new Image();
+    img.onload=function(){pushHistory();
+      var ratio=img.height/img.width;
+      var vw=W/ui.zoom,vh=H/ui.zoom;
+      var nw=vw*0.96,nh=nw*ratio;
+      if(nh>vh*0.96){nh=vh*0.96;nw=nh/ratio;}
+      var cx=(-ui.panX/ui.zoom)+vw/2, cy=(-ui.panY/ui.zoom)+vh/2;
+      state.bg={src:rd.result,x:cx-nw/2,y:cy-nh/2,w:nw,h:nh,ratio:ratio,opacity:0.85};
+      ui.bgBase=nw;bgImg=img;syncBgCard();draw();
+      toast("План загружен и зафиксирован","ok");};
+    img.src=rd.result;};
+  rd.readAsDataURL(file);e.target.value="";});
+$("bgScale").addEventListener("input",function(e){
+  if(!state.bg||!ui.bgBase)return;
+  var pct=parseFloat(e.target.value);
+  var nw=ui.bgBase*pct/100, nh=nw*(state.bg.ratio||1);
+  var cx=state.bg.x+state.bg.w/2, cy=state.bg.y+state.bg.h/2;
+  state.bg.w=nw;state.bg.h=nh;state.bg.x=cx-nw/2;state.bg.y=cy-nh/2;
+  $("bgScaleVal").textContent=Math.round(pct)+"%";draw();});
+$("bgOp").addEventListener("input",function(e){
+  if(!state.bg)return;state.bg.opacity=parseFloat(e.target.value)/100;
+  $("bgOpVal").textContent=e.target.value+"%";draw();});
+$("bgFit").addEventListener("click",function(){if(!state.bg)return;
+  var vw=W/ui.zoom,vh=H/ui.zoom,nw=vw*0.96,nh=nw*(state.bg.ratio||1);
+  if(nh>vh*0.96){nh=vh*0.96;nw=nh/(state.bg.ratio||1);}
+  var cx=state.bg.x+state.bg.w/2,cy=state.bg.y+state.bg.h/2;
+  state.bg.w=nw;state.bg.h=nh;state.bg.x=cx-nw/2;state.bg.y=cy-nh/2;
+  ui.bgBase=nw;syncBgCard();draw();});
+$("bgDel").addEventListener("click",function(){if(confirm("Удалить план?")){
+  pushHistory();state.bg=null;bgImg=null;ui.bgBase=null;syncBgCard();draw();toast("План удалён","err");}});
+
+function updateInfo(){var h='<div class="info-chip"><div class="dot" style="background:var(--yel)"></div>Объектов: <b>'+state.elements.length+'</b></div>'
+  +'<div class="info-chip"><div class="dot" style="background:var(--cyan)"></div>Трасс: <b>'+state.wires.length+'</b></div>';
+  if(state.pxPerMeter)h+='<div class="info-chip"><div class="dot" style="background:var(--green)"></div>1 м = <b>'+state.pxPerMeter.toFixed(0)+' px</b></div>';
+  else if(state.bg)h+='<div class="info-chip" style="color:var(--orange)"><div class="dot" style="background:var(--orange)"></div>Откалибруйте 📏</div>';
+  $("canvasInfo").innerHTML=h;}
+
+$("zoomIn").addEventListener("click",function(){zoomBy(1.2);});
+$("zoomOut").addEventListener("click",function(){zoomBy(1/1.2);});
+$("zoomFit").addEventListener("click",function(){ui.zoom=1;ui.panX=0;ui.panY=0;$("zoomPct").textContent="100%";draw();});
+function zoomBy(f){var old=ui.zoom;ui.zoom=clamp(ui.zoom*f,.25,3);
+  ui.panX=W/2-(W/2-ui.panX)*(ui.zoom/old);ui.panY=H/2-(H/2-ui.panY)*(ui.zoom/old);
+  $("zoomPct").textContent=Math.round(ui.zoom*100)+"%";draw();}
+
+function getBounds(){var minX=1e9,minY=1e9,maxX=-1e9,maxY=-1e9,has=false;
+  state.elements.forEach(function(el){var sz=elSize(el);
+    minX=Math.min(minX,el.x-sz.w/2);maxX=Math.max(maxX,el.x+sz.w/2);
+    minY=Math.min(minY,el.y-sz.h/2);maxY=Math.max(maxY,el.y+sz.h/2);has=true;});
+  state.wires.forEach(function(w){(w.points||[]).forEach(function(p){
+    minX=Math.min(minX,p.x);maxX=Math.max(maxX,p.x);minY=Math.min(minY,p.y);maxY=Math.max(maxY,p.y);has=true;});});
+  state.rooms.forEach(function(r){minX=Math.min(minX,r.x);maxX=Math.max(maxX,r.x+r.w);
+    minY=Math.min(minY,r.y);maxY=Math.max(maxY,r.y+r.h);has=true;});
+  if(!has)return{x:0,y:0,w:600,h:400};
+  return{x:minX,y:minY,w:maxX-minX,h:maxY-minY};}
+$("btnExportPng").addEventListener("click",function(){
+  var bounds=getBounds(),pad=40,ew=bounds.w+pad*2,eh=bounds.h+pad*2;
+  var c=document.createElement("canvas");c.width=Math.round(ew*2);c.height=Math.round(eh*2);
+  var cx=c.getContext("2d");cx.scale(2,2);
+  cx.fillStyle="#111318";cx.fillRect(0,0,ew,eh);
+  var octx=ctx,op={x:ui.panX,y:ui.panY},oz=ui.zoom,os=ui.selected;
+  ctx=cx;ui.panX=-bounds.x+pad;ui.panY=-bounds.y+pad;ui.zoom=1;ui.selected=null;
+  if(state.bg&&bgImg&&bgImg.complete)drawBg();
+  state.rooms.forEach(drawRoom);state.wires.forEach(drawWire);
+  state.elements.forEach(drawElement);state.texts.forEach(drawText);
+  ctx=octx;ui.panX=op.x;ui.panY=op.y;ui.zoom=oz;ui.selected=os;
+  var a=document.createElement("a");a.download=($("projName").value||"shema")+".png";
+  a.href=c.toDataURL("image/png");a.click();toast("PNG сохранён","ok");});
+$("btnExportPdf").addEventListener("click",function(){$("btnExportPng").click();
+  toast("Для PDF: откройте PNG → Печать → Сохранить как PDF");});
+
+function initTips(){var tip=$("tip");
+  function show(text,x,y){tip.textContent=text;tip.style.display="block";
+    var tw=tip.offsetWidth,th=tip.offsetHeight;
+    var left=x+14,top=y-th-10;
+    if(left+tw>window.innerWidth-8)left=Math.max(8,x-tw-10);
+    if(top<8)top=y+16;
+    tip.style.left=left+"px";tip.style.top=top+"px";}
+  function hide(){tip.style.display="none";}
+  ["specList","costList"].forEach(function(id){var c=$(id);if(!c)return;
+    c.addEventListener("mousemove",function(e){
+      var nm=e.target.closest(".si-nm");
+      if(nm)show(nm.getAttribute("data-full")||nm.textContent,e.clientX,e.clientY);
+      else hide();});
+    c.addEventListener("mouseleave",hide);});}
+
+$("btnUndo").addEventListener("click",undo);
+$("btnUndoMb").addEventListener("click",undo);
+$("btnRedo").addEventListener("click",redo);
+$("btnDelMb").addEventListener("click",deleteSelected);
+$("btnClear").addEventListener("click",function(){
+  if(confirm("Очистить весь холст?")){pushHistory();
+    state={elements:[],wires:[],texts:[],rooms:[],bg:null,pxPerMeter:0,mainProjectId:null,includeWork:state.includeWork};
+    bgImg=null;ui.bgBase=null;ui.selected=null;
+    draw();renderProps();renderSpec();syncBgCard();toast("Холст очищен","err");}});
+
+var restored=tryRestore();
+populateCableSelector();
+renderLibrary();renderProjList();
+resizeCanvas();pushHistory();setTool("select");
+syncBgCard();updateLinked();syncWorkToggle();updateLayBar();
+renderSpec();renderProps();initTips();
+if(restored)toast("Восстановлена несохранённая схема","ok");
+</script>
+</body>
+</html>
