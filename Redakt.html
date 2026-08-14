@@ -1,0 +1,60 @@
+1. Замени функцию  getBounds  (добавлен фон-план в границы)
+function getBounds(){var minX=1e9,minY=1e9,maxX=-1e9,maxY=-1e9,has=false;
+  state.elements.forEach(function(el){var sz=elSize(el);
+    minX=Math.min(minX,el.x-sz.w/2);maxX=Math.max(maxX,el.x+sz.w/2);
+    minY=Math.min(minY,el.y-sz.h/2);maxY=Math.max(maxY,el.y+sz.h/2);has=true;});
+  state.wires.forEach(function(w){(w.points||[]).forEach(function(p){
+    minX=Math.min(minX,p.x);maxX=Math.max(maxX,p.x);minY=Math.min(minY,p.y);maxY=Math.max(maxY,p.y);has=true;});});
+  state.rooms.forEach(function(r){minX=Math.min(minX,r.x);maxX=Math.max(maxX,r.x+r.w);
+    minY=Math.min(minY,r.y);maxY=Math.max(maxY,r.y+r.h);has=true;});
+  if(state.bg){minX=Math.min(minX,state.bg.x);maxX=Math.max(maxX,state.bg.x+state.bg.w);
+    minY=Math.min(minY,state.bg.y);maxY=Math.max(maxY,state.bg.y+state.bg.h);has=true;}
+  if(!has)return{x:0,y:0,w:600,h:400};
+  return{x:minX,y:minY,w:maxX-minX,h:maxY-minY};}
+
+Замени функцию  renderSchemeCanvas  (главное исправление — добавлен  translate )
+function renderSchemeCanvas(bgColor){
+  var bounds=getBounds(),pad=40;
+  var ew=bounds.w+pad*2,eh=bounds.h+pad*2;
+  /* масштаб экспорта, холст не более 6000px по большей стороне */
+  var es=Math.min(2,6000/Math.max(ew,eh));
+  var c=document.createElement("canvas");
+  c.width=Math.max(1,Math.round(ew*es));c.height=Math.max(1,Math.round(eh*es));
+  var cx=c.getContext("2d");
+  cx.scale(es,es);
+  cx.fillStyle=bgColor;cx.fillRect(0,0,ew,eh);
+  /* подменяем контекст и ОБЯЗАТЕЛЬНО сдвигаем, чтобы вся схема вписалась в кадр */
+  var octx=ctx,op={x:ui.panX,y:ui.panY},oz=ui.zoom,os=ui.selected;
+  ctx=cx;ui.zoom=1;ui.selected=null;
+  ui.panX=-bounds.x+pad;ui.panY=-bounds.y+pad;
+  ctx.save();
+  ctx.translate(ui.panX,ui.panY);
+  ctx.scale(ui.zoom,ui.zoom);
+  if(state.bg&&bgImg&&bgImg.complete)drawBg();
+  state.rooms.forEach(drawRoom);state.wires.forEach(drawWire);
+  state.elements.forEach(drawElement);state.texts.forEach(drawText);
+  ctx.restore();
+  ctx=octx;ui.panX=op.x;ui.panY=op.y;ui.zoom=oz;ui.selected=os;
+  return c;}
+
+Замени обработчик  $("btnExportPdf")  (надёжное вписывание в A4)
+$("btnExportPdf").addEventListener("click",function(){
+  var c=renderSchemeCanvas("#ffffff");
+  var url=c.toDataURL("image/png");
+  var name=$("projName").value||"Схема";
+  var win=window.open("","_blank");
+  if(!win){toast("Разрешите всплывающие окна, чтобы печатать","err");return;}
+  var html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+esc(name)+'</title>'
+   +'<style>'
+   +'@page{size:A4 portrait;margin:10mm}'
+   +'html,body{margin:0;padding:0}'
+   +'body{display:flex;flex-direction:column;align-items:center;font-family:Arial,sans-serif}'
+   +'.ttl{font-size:14pt;font-weight:700;margin:0 0 4mm 0;color:#000;text-align:center}'
+   +'img{display:block;max-width:190mm;max-height:258mm;width:auto;height:auto}'
+   +'</style></head><body>'
+   +'<div class="ttl">'+esc(name)+'</div>'
+   +'<img src="'+url+'" onload="setTimeout(function(){try{window.print();}catch(e){}},300)">'
+   +'</body></html>';
+  win.document.open();win.document.write(html);win.document.close();
+  toast("Открыто окно печати (А4)","ok");});
+
