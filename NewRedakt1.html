@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ElectroCAD 2.0 | Профессиональный редактор схем</title>
+<style>
+    :root {
+        --bg-0: #0a0e1a;
+        --bg-1: #111827;
+        --bg-2: #1f2937;
+        --bg-3: rgba(31, 41, 55, 0.6);
+        --border: rgba(255, 255, 255, 0.08);
+        --border-hover: rgba(255, 204, 0, 0.4);
+        --text-0: #ffffff;
+        --text-1: #cbd5e1;
+        --text-2: #64748b;
+        --accent: #fbbf24;
+        --accent-2: #3b82f6;
+        --accent-3: #10b981;
+        --danger: #ef4444;
+        --canvas-bg: #f8fafc;
+        --shadow: 0 20px 60px rgba(0,0,0,0.5);
+        --radius: 12px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    html, body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: var(--bg-0);
+        color: var(--text-0);
+        height: 100vh;
+        overflow: hidden;
+        user-select: none;
+        -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+        background:
+            radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
+            radial-gradient(circle at 80% 80%, rgba(251, 191, 36, 0.1) 0%, transparent 50%),
+            var(--bg-0);
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* ===== HEADER ===== */
+    header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 20px;
+        background: var(--bg-3);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-bottom: 1px solid var(--border);
+        z-index: 100;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 700;
+        font-size: 18px;
+        letter-spacing: 0.5px;
+    }
+    .logo-icon {
+        width: 36px; height: 36px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, var(--accent), #f59e0b);
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
+    }
+    .logo-icon svg { width: 20px; height: 20px; }
+    .logo-sub { font-size: 11px; color: var(--text-2); font-weight: 500; letter-spacing: 1px; text-transform: uppercase;}
+
+    .toolbar { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+
+    .btn {
+        background: var(--bg-2);
+        border: 1px solid var(--border);
+        color: var(--text-1);
+        padding: 8px 14px;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-family: inherit;
+    }
+    .btn:hover { background: #2d3748; border-color: var(--border-hover); color: var(--text-0); transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+    .btn svg { width: 16px; height: 16px; }
+    .btn-primary {
+        background: linear-gradient(135deg, var(--accent), #f59e0b);
+        color: #000;
+        border-color: transparent;
+        font-weight: 600;
+    }
+    .btn-primary:hover { box-shadow: 0 4px 16px rgba(251, 191, 36, 0.4); color: #000; }
+    .btn.active {
+        background: var(--accent-2);
+        color: white;
+        border-color: transparent;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+    }
+    .btn-danger:hover { background: var(--danger); color: white; border-color: transparent; }
+
+    .divider { width: 1px; height: 24px; background: var(--border); margin: 0 4px; }
+
+    /* ===== LAYOUT ===== */
+    .app {
+        flex: 1;
+        display: flex;
+        overflow: hidden;
+        position: relative;
+    }
+
+    /* ===== SIDEBAR ===== */
+    .sidebar {
+        width: 280px;
+        background: var(--bg-3);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .sidebar-section { padding: 16px; }
+    .section-title {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-2);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 12px;
+        display: flex; align-items: center; gap: 8px;
+    }
+    .section-title::before {
+        content: ''; width: 3px; height: 12px;
+        background: var(--accent);
+        border-radius: 2px;
+    }
+
+    .tool-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        overflow-y: auto;
+        flex: 1;
+        padding-right: 4px;
+    }
+    .tool-grid::-webkit-scrollbar { width: 4px; }
+    .tool-grid::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .tool-item {
+        background: var(--bg-2);
+        border: 1px solid var(--border);
+        padding: 14px 10px;
+        border-radius: 10px;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        color: var(--text-1);
+        transition: all 0.2s ease;
+        text-align: center;
+        min-height: 88px;
+    }
+    .tool-item:hover {
+        background: var(--bg-2);
+        border-color: var(--accent);
+        color: var(--text-0);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(251, 191, 36, 0.15);
+    }
+    .tool-item svg { width: 28px; height: 28px; stroke: var(--accent); fill: none; stroke-width: 1.5; }
+
+    /* ===== CANVAS ===== */
+    .canvas-wrapper {
+        flex: 1;
+        overflow: auto;
+        background:
+            linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px),
+            var(--bg-0);
+        background-size: 40px 40px;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        padding: 40px;
+    }
+
+    #canvas {
+        width: 210mm;
+        min-height: 297mm;
+        background: var(--canvas-bg);
+        box-shadow: var(--shadow);
+        position: relative;
+        border-radius: 4px;
+        background-image:
+            radial-gradient(circle, #e2e8f0 1px, transparent 1px);
+        background-size: 15px 15px;
+        flex-shrink: 0;
+    }
+
+    #wire-svg {
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 2;
+    }
+    #wire-svg path {
+        stroke: #1e293b;
+        stroke-width: 2;
+        fill: none;
+        pointer-events: stroke;
+        cursor: pointer;
+        transition: stroke 0.2s;
+    }
+    #wire-svg path:hover { stroke: var(--danger); stroke-width: 3; }
+    #wire-svg path.selected { stroke: var(--accent-2); stroke-width: 3; }
+
+    /* ===== SCHEMA ELEMENTS ===== */
+    .element {
+        position: absolute;
+        width: 70px;
+        height: 70px;
+        background: white;
+        border: 2px solid #334155;
+        border-radius: 10px;
+        cursor: move;
+        z-index: 5;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        transition: box-shadow 0.2s, transform 0.2s;
+        touch-action: none;
+    }
+    .element:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.2); }
+    .element.selected {
+        border-color: var(--accent-2);
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2), 0 6px 20px rgba(59, 130, 246, 0.3);
+    }
+    .element-icon { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; }
+    .element-icon svg { width: 28px; height: 28px; stroke: #1e293b; fill: none; stroke-width: 1.8; }
+    .element-label {
+        font-size: 9px;
+        font-weight: 600;
+        color: #1e293b;
+        text-align: center;
+        padding: 0 4px;
+        line-height: 1.1;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .price-badge {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        background: linear-gradient(135deg, var(--accent), #f59e0b);
+        color: #000;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 3px 6px;
+        border-radius: 6px;
+        box-shadow: 0 2px 6px rgba(251, 191, 36, 0.4);
+        display: none;
+        white-space: nowrap;
+    }
+    .prices-visible .price-badge { display: block; }
+
+    .port {
+        width: 10px; height: 10px;
+        background: var(--accent-2);
+        border: 2px solid white;
+        border-radius: 50%;
+        position: absolute;
+        box-shadow: 0 0 0 2px var(--accent-2);
+        pointer-events: all;
+        cursor: crosshair;
+        opacity: 0;
+        transition: opacity 0.2s, transform 0.2s;
+        z-index: 10;
+    }
+    .port-top { top: -6px; left: 50%; transform: translate(-50%, 0); }
+    .port-bottom { bottom: -6px; left: 50%; transform: translate(-50%, 0); }
+    .port-left { left: -6px; top: 50%; transform: translate(0, -50%); }
+    .port-right { right: -6px; top: 50%; transform: translate(0, -50%); }
+
+    .wire-mode .port { opacity: 1; }
+    .wire-mode .element { cursor: crosshair; }
+    .wire-mode .element:hover { border-color: var(--accent); }
+
+    .element.wire-start {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.3), 0 0 20px rgba(251, 191, 36, 0.5);
+    }
+
+    /* ===== FOOTER ===== */
+    footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 20px;
+        background: var(--bg-3);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-top: 1px solid var(--border);
+        font-size: 12px;
+        color: var(--text-2);
+        z-index: 100;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .status { display: flex; align-items: center; gap: 8px; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-3); box-shadow: 0 0 8px var(--accent-3); }
+    .total-price {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--accent);
+        display: flex; align-items: center; gap: 6px;
+        padding: 6px 12px;
+        background: rgba(251, 191, 36, 0.1);
+        border: 1px solid rgba(251, 191, 36, 0.3);
+        border-radius: 8px;
+    }
+    .stats { display: flex; gap: 14px; }
+    .stat-item { display: flex; flex-direction: column; }
+    .stat-value { color: var(--text-0); font-weight: 600; font-size: 13px; }
+    .stat-label { color: var(--text-2); font-size: 10px; text-transform: uppercase; }
+
+    /* ===== MODAL ===== */
+    .modal-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.7);
+        backdrop-filter: blur(8px);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+    .modal-backdrop.active { display: flex; }
+
+    .modal {
+        background: var(--bg-1);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        width: 100%;
+        max-width: 640px;
+        max-height: 80vh;
+        display: flex;
+        flex-direction: column;
+        box-shadow: var(--shadow);
+        animation: slideUp 0.3s ease;
+    }
+
+    @keyframes slideUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .modal-header {
+        padding: 20px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .modal-header h3 { font-size: 18px; font-weight: 600; }
+    .modal-close {
+        background: none;
+        border: none;
+        color: var(--text-2);
+        cursor: pointer;
+        width: 32px; height: 32px;
+        border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        transition: all 0.2s;
+    }
+    .modal-close:hover { background: var(--bg-2); color: var(--text-0); }
+
+    .modal-search {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+    }
+    .search-input {
+        width: 100%;
+        background: var(--bg-2);
+        border: 1px solid var(--border);
+        color: var(--text-0);
+        padding: 10px 14px;
+        border-radius: 10px;
+        font-size: 14px;
+        font-family: inherit;
+    }
+    .search-input:focus { outline: none; border-color: var(--accent); }
+
+    .modal-body { overflow-y: auto; flex: 1; padding: 10px; }
+    .modal-body::-webkit-scrollbar { width: 6px; }
+    .modal-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .price-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: background 0.2s;
+        border: 1px solid transparent;
+    }
+    .price-item:hover { background: var(--bg-2); border-color: var(--border); }
+    .price-icon {
+        width: 44px; height: 44px;
+        background: var(--bg-2);
+        border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+    }
+    .price-icon svg { width: 22px; height: 22px; stroke: var(--accent); fill: none; stroke-width: 1.8; }
+    .price-info { flex: 1; min-width: 0; }
+    .price-name { font-weight: 600; font-size: 14px; color: var(--text-0); margin-bottom: 2px; }
+    .price-meta { font-size: 11px; color: var(--text-2); }
+    .price-amount {
+        font-weight: 700;
+        color: var(--accent);
+        font-size: 15px;
+        white-space: nowrap;
+    }
+
+    /* ===== MOBILE ===== */
+    @media (max-width: 900px) {
+        .app { flex-direction: column; }
+        .sidebar {
+            width: 100%;
+            height: 160px;
+            border-right: none;
+            border-top: 1px solid var(--border);
+            order: 2;
+            flex-direction: column;
+        }
+        .sidebar-section { padding: 10px; }
+        .tool-grid {
+            grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+            grid-auto-rows: 80px;
+            overflow-x: auto;
+            overflow-y: hidden;
+        }
+        .canvas-wrapper { padding: 20px; order: 1; }
+        #canvas { transform: scale(0.9); transform-origin: top center; }
+        .btn .btn-text { display: none; }
+        .btn { padding: 8px 10px; }
+        header { padding: 10px; }
+        footer { padding: 8px 12px; font-size: 11px; }
+        .stats { gap: 10px; }
+        .logo-sub { display: none; }
+    }
+
+    /* ===== PRINT ===== */
+    @media print {
+        @page { size: A4; margin: 0; }
+        body, html { background: white !important; }
+        header, .sidebar, footer, .modal-backdrop { display: none !important; }
+        .canvas-wrapper {
+            overflow: visible !important;
+            padding: 0 !important;
+            background: white !important;
+            display: block !important;
+        }
+        #canvas {
+            width: 210mm !important;
+            height: 297mm !important;
+            box-shadow: none !important;
+            margin: 0 !important;
+            background: white !important;
+            transform: none !important;
+            border-radius: 0 !important;
+            page-break-after: avoid;
+        }
+        .port, .price-badge { display: none !important; }
+        .element { box-shadow: none !important; border-color: #000 !important; }
+        #wire-svg path { stroke: #000 !important; stroke-width: 1.5 !important; }
+    }
+
+    /* ===== NOTIFICATIONS ===== */
+    .toast {
+        position: fixed;
+        bottom: 80px;
+        left: 50%;
+        transform: translateX(-50%) translateY(20px);
+        background: var(--bg-2);
+        border: 1px solid var(--border);
+        padding: 12px 20px;
+        border-radius: 10px;
+        font-size: 13px;
+        color: var(--text-0);
+        opacity: 0;
+        transition: all 0.3s ease;
+        z-index: 2000;
+        pointer-events: none;
+        box-shadow: var(--shadow);
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .toast.success { border-color: var(--accent-3); }
+    .toast.error { border-color: var(--danger); }
+</style>
+</head>
+<body>
+
+<header>
+    <div class="logo">
+        <div class="logo-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            </svg>
+        </div>
+        <div>
+            <div>ElectroCAD</div>
+            <div class="logo-sub">v2.0 Professional</div>
+        </div>
+    </div>
+
+    <div class="toolbar">
+        <button class="btn" id="btn-select" title="Выбор (V)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/></svg>
+            <span class="btn-text">Выбор</span>
+        </button>
+        <button class="btn" id="btn-wire" title="Провода (W)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9h16M4 15h16M4 9v6M20 9v6"/></svg>
+            <span class="btn-text">Провода</span>
+        </button>
+        <div class="divider"></div>
+        <button class="btn btn-primary" id="btn-price" title="Прайс-лист">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            <span class="btn-text">Прайс</span>
+        </button>
+        <button class="btn" id="btn-toggle-prices" title="Цены на схеме">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+            <span class="btn-text">Цены</span>
+        </button>
+        <div class="divider"></div>
+        <button class="btn" id="btn-save" title="Сохранить проект">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            <span class="btn-text">Сохранить</span>
+        </button>
+        <button class="btn" id="btn-load" title="Загрузить проект">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span class="btn-text">Открыть</span>
+        </button>
+        <button class="btn" id="btn-print" title="Печать А4">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+            <span class="btn-text">Печать</span>
+        </button>
+        <button class="btn btn-danger" id="btn-clear" title="Очистить">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        </button>
+    </div>
+</header>
+
+<div class="app">
+    <aside class="sidebar">
+        <div class="sidebar-section" style="padding-bottom: 8px;">
+            <div class="section-title">Библиотека компонентов</div>
+        </div>
+        <div class="tool-grid" id="toolbox"></div>
+    </aside>
+
+    <div class="canvas-wrapper" id="canvasWrapper">
+        <div id="canvas">
+            <svg id="wire-svg"></svg>
+        </div>
+    </div>
+</div>
+
+<footer>
+    <div class="status">
+        <div class="status-dot"></div>
+        <span id="statusText">Готов к работе</span>
+    </div>
+    <div class="stats">
+        <div class="stat-item">
+            <span class="stat-value" id="statElements">0</span>
+            <span class="stat-label">Элементов</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-value" id="statWires">0</span>
+            <span class="stat-label">Соединений</span>
+        </div>
+    </div>
+    <div class="total-price">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        <span id="totalPrice">0 ₽</span>
+    </div>
+</footer>
+
+<!-- Прайс-лист модалка -->
+<div class="modal-backdrop" id="priceModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>📋 Прайс-лист материалов</h3>
+            <button class="modal-close" onclick="closeModal()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <div class="modal-search">
+            <input type="text" class="search-input" id="priceSearch" placeholder="🔍 Поиск по прайсу...">
+        </div>
+        <div class="modal-body" id="priceList"></div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// КОНФИГУРАЦИЯ КОМПОНЕНТОВ (SVG иконки)
+// ============================================================
+const ICONS = {
+    breaker: '<svg viewBox="0 0 24 24"><rect x="7" y="3" width="10" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="10"/><line x1="12" y1="14" x2="12" y2="21"/><line x1="9" y1="12" x2="15" y2="12"/></svg>',
+    uzo: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/><circle cx="12" cy="12" r="3" fill="none"/></svg>',
+    socket: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="10" r="1.5" fill="currentColor"/><circle cx="15" cy="10" r="1.5" fill="currentColor"/><path d="M12 13v4"/></svg>',
+    light: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v3M12 20v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M1 12h3M20 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>',
+    panel: '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="9" x2="9" y2="21"/><line x1="15" y1="9" x2="15" y2="21"/></svg>',
+    junction: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2" fill="currentColor"/></svg>',
+    switch1: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="6" x2="12" y2="12"/><line x1="12" y1="12" x2="16" y2="16"/></svg>',
+    switch2: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="6" x2="12" y2="12"/><line x1="12" y1="12" x2="16" y2="16"/><line x1="12" y1="12" x2="8" y2="16"/></svg>',
+    meter: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M12 12l2-2"/></svg>',
+    dimmer: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 8v4"/></svg>'
+};
+
+// ============================================================
+// ПРАЙС-ЛИСТ (Имитация API из вашего проекта)
+// В реальном проекте замените на fetch('/api/price-list')
+// ============================================================
+const PRICE_LIST = [
+    { id: 'ABB-S201-16', name: 'Автомат ABB S201 16А', type: 'breaker', price: 1850, category: 'Защита' },
+    { id: 'ABB-S201-25', name: 'Автомат ABB S201 25А', type: 'breaker', price: 1950, category: 'Защита' },
+    { id: 'ABB-S203-32', name: 'Автомат ABB S203 32А (3-ф)', type: 'breaker', price: 3850, category: 'Защита' },
+    { id: 'LEGRAND-UZO-40', name: 'УЗО Legrand 40А 30мА', type: 'uzo', price: 4200, category: 'Защита' },
+    { id: 'ABB-F202', name: 'УЗО ABB F202 63А 30мА', type: 'uzo', price: 5400, category: 'Защита' },
+    { id: 'SCH-UNICA-W', name: 'Розетка Schneider Unica (белая)', type: 'socket', price: 650, category: 'Розетки' },
+    { id: 'SCH-UNICA-B', name: 'Розетка Schneider Unica (чёрная)', type: 'socket', price: 720, category: 'Розетки' },
+    { id: 'LEGR-VAL-S', name: 'Розетка Legrand Valena с/з', type: 'socket', price: 540, category: 'Розетки' },
+    { id: 'LED-6W', name: 'Светильник LED 6W встраив.', type: 'light', price: 890, category: 'Освещение' },
+    { id: 'LED-12W', name: 'Светильник LED 12W потолочн.', type: 'light', price: 1450, category: 'Освещение' },
+    { id: 'LED-STRIP', name: 'LED лента 5м с БП', type: 'light', price: 2300, category: 'Освещение' },
+    { id: 'PANEL-24', name: 'Щит встраиваемый 24 модуля', type: 'panel', price: 5800, category: 'Щиты' },
+    { id: 'PANEL-36', name: 'Щит встраиваемый 36 модулей', type: 'panel', price: 7200, category: 'Щиты' },
+    { id: 'PANEL-72', name: 'Щит напольный 72 модуля', type: 'panel', price: 14500, category: 'Щиты' },
+    { id: 'JBOX-80', name: 'Расп. коробка d=80мм', type: 'junction', price: 85, category: 'Материалы' },
+    { id: 'SW-1K', name: 'Выключатель 1-кл Schneider', type: 'switch1', price: 480, category: 'Выключатели' },
+    { id: 'SW-2K', name: 'Выключатель 2-кл Schneider', type: 'switch2', price: 620, category: 'Выключатели' },
+    { id: 'METER-1PH', name: 'Счётчик Меркурий 201', type: 'meter', price: 3200, category: 'Учёт' },
+    { id: 'METER-3PH', name: 'Счётчик Меркурий 230 (3-ф)', type: 'meter', price: 6800, category: 'Учёт' },
+    { id: 'DIMMER-600', name: 'Диммер 600W поворотный', type: 'dimmer', price: 1450, category: 'Выключатели' }
+];
+
+const TOOLBOX = [
+    { type: 'breaker', label: 'Автомат' },
+    { type: 'uzo', label: 'УЗО' },
+    { type: 'socket', label: 'Розетка' },
+    { type: 'light', label: 'Светильник' },
+    { type: 'panel', label: 'Щит' },
+    { type: 'junction', label: 'Распред. кор.' },
+    { type: 'switch1', label: 'Выкл. 1 кл.' },
+    { type: 'switch2', label: 'Выкл. 2 кл.' },
+    { type: 'meter', label: 'Счётчик' },
+    { type: 'dimmer', label: 'Диммер' }
+];
+
+// ============================================================
+// СОСТОЯНИЕ ПРИЛОЖЕНИЯ (state-driven architecture)
+// ============================================================
+const state = {
+    elements: [],
+    wires: [],
+    mode: 'select',      // 'select' | 'wire'
+    selectedId: null,
+    wireStartId: null,
+    pricesVisible: false,
+    dragState: null,
+    nextId: 1
+};
+
+// DOM ссылки
+const canvas = document.getElementById('canvas');
+const svg = document.getElementById('wire-svg');
+const toolbox = document.getElementById('toolbox');
+const statusText = document.getElementById('statusText');
+const totalPriceEl = document.getElementById('totalPrice');
+const statElements = document.getElementById('statElements');
+const statWires = document.getElementById('statWires');
+const toast = document.getElementById('toast');
+
+// ============================================================
+// УТИЛИТЫ
+// ============================================================
+const uid = () => 'el_' + (state.nextId++) + '_' + Date.now().toString(36);
+
+function showToast(msg, type = 'success') {
+    toast.textContent = msg;
+    toast.className = 'toast show ' + type;
+    setTimeout(() => { toast.className = 'toast ' + type; }, 2500);
+}
+
+function setStatus(msg) { statusText.textContent = msg; }
+
+function formatPrice(n) {
+    return new Intl.NumberFormat('ru-RU').format(n) + ' ₽';
+}
+
+// ============================================================
+// РЕНДЕР (из state -> DOM)
+// ============================================================
+function render() {
+    // Рендер элементов
+    const existing = new Set();
+    canvas.querySelectorAll('.element').forEach(el => existing.add(el.dataset.id));
+
+    state.elements.forEach(elData => {
+        let el = canvas.querySelector(`[data-id="${elData.id}"]`);
+        if (!el) {
+            el = document.createElement('div');
+            el.className = 'element';
+            el.dataset.id = elData.id;
+            el.innerHTML = `
+                <div class="port port-top"></div>
+                <div class="port port-bottom"></div>
+                <div class="port port-left"></div>
+                <div class="port port-right"></div>
+                <div class="element-icon">${ICONS[elData.type] || ICONS.junction}</div>
+                <div class="element-label">${elData.label}</div>
+                <div class="price-badge">${formatPrice(elData.price)}</div>
+            `;
+            canvas.appendChild(el);
+            attachElementHandlers(el);
+        }
+        el.style.left = elData.x + 'px';
+        el.style.top = elData.y + 'px';
+        el.classList.toggle('selected', state.selectedId === elData.id);
+        el.classList.toggle('wire-start', state.wireStartId === elData.id);
+        el.querySelector('.element-label').textContent = elData.label;
+        el.querySelector('.price-badge').textContent = formatPrice(elData.price);
+    });
+
+    // Удалить несуществующие
+    canvas.querySelectorAll('.element').forEach(el => {
+        if (!state.elements.find(e => e.id === el.dataset.id)) {
+            el.remove();
+        }
+    });
+
+    // Рендер проводов
+    renderWires();
+
+    // Цены на схеме
+    canvas.classList.toggle('prices-visible', state.pricesVisible);
+
+    // Статистика
+    statElements.textContent = state.elements.length;
+    statWires.textContent = state.wires.length;
+
+    // Сумма
+    const total = state.elements.reduce((sum, el) => sum + (el.price || 0), 0);
+    totalPriceEl.textContent = formatPrice(total);
+
+    // Режим
+    canvas.classList.toggle('wire-mode', state.mode === 'wire');
+    document.getElementById('btn-select').classList.toggle('active', state.mode === 'select');
+    document.getElementById('btn-wire').classList.toggle('active', state.mode === 'wire');
+    document.getElementById('btn-toggle-prices').classList.toggle('active', state.pricesVisible);
+}
+
+function renderWires() {
+    svg.innerHTML = '';
+    state.wires.forEach(wire => {
+        const from = state.elements.find(e => e.id === wire.fromId);
+        const to = state.elements.find(e => e.id === wire.toId);
+        if (!from || !to) return;
+
+        const x1 = from.x + 35;
+        const y1 = from.y + 35;
+        const x2 = to.x + 35;
+        const y2 = to.y + 35;
+
+        // L-образная трассировка (ортогональная)
+        const midX = (x1 + x2) / 2;
+        const d = `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`;
+
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', d);
+        path.dataset.wireId = wire.id;
+        path.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (confirm('Удалить это соединение?')) {
+                state.wires = state.wires.filter(w => w.id !== wire.id);
+                render();
+                save();
+                showToast('Соединение удалено');
+            }
+        });
+        svg.appendChild(path);
+    });
+}
+
+// ============================================================
+// ОБРАБОТЧИКИ ЭЛЕМЕНТОВ (drag + select + wire)
+// ============================================================
+function attachElementHandlers(el) {
+    el.addEventListener('pointerdown', (e) => {
+        // Клик по порту - игнорируем (используется только визуально)
+        if (e.target.classList.contains('port')) return;
+
+        const id = el.dataset.id;
+        const elData = state.elements.find(x => x.id === id);
+        if (!elData) return;
+
+        e.stopPropagation();
+
+        // Режим проводов
+        if (state.mode === 'wire') {
+            handleWireClick(id);
+            return;
+        }
+
+        // Режим выбора - начать drag
+        state.selectedId = id;
+        render();
+
+        const canvasRect = canvas.getBoundingClientRect();
+        const wrapper = document.getElementById('canvasWrapper');
+        const scrollLeft = wrapper.scrollLeft;
+        const scrollTop = wrapper.scrollTop;
+
+        const offsetX = e.clientX - canvasRect.left + scrollLeft - elData.x;
+        const offsetY = e.clientY - canvasRect.top + scrollTop - elData.y;
+
+        state.dragState = {
+            id,
+            offsetX,
+            offsetY,
+            startX: elData.x,
+            startY: elData.y,
+            moved: false
+        };
+
+        el.setPointerCapture(e.pointerId);
+    });
+
+    el.addEventListener('pointermove', (e) => {
+        if (!state.dragState || state.dragState.id !== el.dataset.id) return;
+
+        const canvasRect = canvas.getBoundingClientRect();
+        const wrapper = document.getElementById('canvasWrapper');
+        const scrollLeft = wrapper.scrollLeft;
+        const scrollTop = wrapper.scrollTop;
+
+        let x = e.clientX - canvasRect.left + scrollLeft - state.dragState.offsetX;
+        let y = e.clientY - canvasRect.top + scrollTop - state.dragState.offsetY;
+
+        // Ограничить холстом (с небольшим отступом)
+        const cw = canvas.offsetWidth;
+        const ch = canvas.offsetHeight;
+        x = Math.max(0, Math.min(x, cw - 70));
+        y = Math.max(0, Math.min(y, ch - 70));
+
+        // Snap к сетке
+        x = Math.round(x / 15) * 15;
+        y = Math.round(y / 15) * 15;
+
+        const elData = state.elements.find(el => el.id === state.dragState.id);
+        if (elData) {
+            elData.x = x;
+            elData.y = y;
+            state.dragState.moved = true;
+            render();
+        }
+    });
+
+    el.addEventListener('pointerup', (e) => {
+        if (state.dragState && state.dragState.id === el.dataset.id) {
+            if (state.dragState.moved) {
+                save();
+            }
+            state.dragState = null;
+        }
+    });
+
+    el.addEventListener('pointercancel', () => {
+        state.dragState = null;
+    });
+}
+
+// ============================================================
+// ЛОГИКА ПРОВОДОВ
+// ============================================================
+function handleWireClick(id) {
+    if (!state.wireStartId) {
+        state.wireStartId = id;
+        setStatus('Начало провода выбрано. Кликните на другой элемент для соединения. Клик по холсту — отмена.');
+    } else {
+        if (state.wireStartId !== id) {
+            // Проверка дубликата
+            const exists = state.wires.some(w =>
+                (w.fromId === state.wireStartId && w.toId === id) ||
+                (w.fromId === id && w.toId === state.wireStartId)
+            );
+            if (!exists) {
+                state.wires.push({
+                    id: 'w_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
+                    fromId: state.wireStartId,
+                    toId: id
+                });
+                save();
+                showToast('Соединение создано ✓');
+            } else {
+                showToast('Такое соединение уже существует', 'error');
+            }
+        }
+        state.wireStartId = null;
+        setStatus('Режим проводов активен. Кликните на элемент для начала соединения.');
+    }
+    render();
+}
+
+// ============================================================
+// ДОБАВЛЕНИЕ ЭЛЕМЕНТОВ
+// ============================================================
+function addElement(type, label, price = 0, priceId = null) {
+    // Найти свободное место на холсте (не в центре, чтобы не наслаивались)
+    const cw = canvas.offsetWidth || 794;
+    const ch = canvas.offsetHeight || 1123;
+
+    let x, y, attempts = 0;
+    do {
+        x = 60 + Math.random() * (cw - 200);
+        y = 60 + Math.random() * (ch - 200);
+        x = Math.round(x / 15) * 15;
+        y = Math.round(y / 15) * 15;
+        attempts++;
+    } while (state.elements.some(e => Math.abs(e.x - x) < 80 && Math.abs(e.y - y) < 80) && attempts < 20);
+
+    const newEl = {
+        id: uid(),
+        type,
+        label,
+        price: price || 0,
+        priceId,
+        x,
+        y
+    };
+    state.elements.push(newEl);
+    state.selectedId = newEl.id;
+    render();
+    save();
+    showToast(`Добавлено: ${label}`);
+}
+
+function addFromPriceList(item) {
+    addElement(item.type, item.name, item.price, item.id);
+    closeModal();
+}
+
+// ============================================================
+// TOOLBOX
+// ============================================================
+function renderToolbox() {
+    toolbox.innerHTML = '';
+    TOOLBOX.forEach(tool => {
+        const div = document.createElement('div');
+        div.className = 'tool-item';
+        div.innerHTML = `
+            <div class="element-icon">${ICONS[tool.type]}</div>
+            <div>${tool.label}</div>
+        `;
+        div.addEventListener('click', () => addElement(tool.type, tool.label));
+        toolbox.appendChild(div);
+    });
+}
+
+// ============================================================
+// ПРАЙС-ЛИСТ (модалка)
+// ============================================================
+function renderPriceList(filter = '') {
+    const list = document.getElementById('priceList');
+    list.innerHTML = '';
+    const filtered = PRICE_LIST.filter(p =>
+        !filter || p.name.toLowerCase().includes(filter.toLowerCase()) ||
+        p.category.toLowerCase().includes(filter.toLowerCase())
+    );
+
+    if (filtered.length === 0) {
+        list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-2);">Ничего не найдено</div>';
+        return;
+    }
+
+    filtered.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'price-item';
+        div.innerHTML = `
+            <div class="price-icon">${ICONS[item.type] || ICONS.junction}</div>
+            <div class="price-info">
+                <div class="price-name">${item.name}</div>
+                <div class="price-meta">${item.category} • Арт. ${item.id}</div>
+            </div>
+            <div class="price-amount">${formatPrice(item.price)}</div>
+        `;
+        div.addEventListener('click', () => addFromPriceList(item));
+        list.appendChild(div);
+    });
+}
+
+function openModal() {
+    document.getElementById('priceModal').classList.add('active');
+    document.getElementById('priceSearch').value = '';
+    renderPriceList();
+    setTimeout(() => document.getElementById('priceSearch').focus(), 100);
+}
+function closeModal() { document.getElementById('priceModal').classList.remove('active'); }
+
+// ============================================================
+// СОХРАНЕНИЕ / ЗАГРУЗКА
+// ============================================================
+function save() {
+    const data = {
+        version: 2,
+        elements: state.elements,
+        wires: state.wires,
+        nextId: state.nextId,
+        savedAt: new Date().toISOString()
+    };
+    try {
+        localStorage.setItem('electroCAD_v2', JSON.stringify(data));
+    } catch(e) { console.error('Save error:', e); }
+}
+
+function load() {
+    try {
+        const saved = localStorage.getItem('electroCAD_v2');
+        if (!saved) return false;
+        const data = JSON.parse(saved);
+        if (data.version !== 2) return false;
+        state.elements = data.elements || [];
+        state.wires = data.wires || [];
+        state.nextId = data.nextId || 1;
+        return true;
+    } catch(e) { return false; }
+}
+
+function exportProject() {
+    const data = {
+        version: 2,
+        projectName: 'ElectroSchema',
+        elements: state.elements,
+        wires: state.wires,
+        nextId: state.nextId,
+        total: state.elements.reduce((s,e) => s + e.price, 0),
+        exportedAt: new Date().toISOString()
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ElectroSchema_${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Проект сохранён в файл');
+}
+
+function importProject() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            try {
+                const data = JSON.parse(ev.target.result);
+                if (!data.elements) throw new Error('Invalid format');
+                if (!confirm('Загрузить проект? Текущие данные будут заменены.')) return;
+                state.elements = data.elements || [];
+                state.wires = data.wires || [];
+                state.nextId = data.nextId || (state.elements.length + 1);
+                state.selectedId = null;
+                state.wireStartId = null;
+                render();
+                save();
+                showToast('Проект загружен ✓');
+            } catch(err) {
+                showToast('Ошибка чтения файла', 'error');
+            }
+        };
+        reader.readAsText(file);
+    };
+    input.click();
+}
+
+function clearAll() {
+    if (state.elements.length === 0) { showToast('Холст уже пуст', 'error'); return; }
+    if (!confirm('Удалить всю схему? Это действие необратимо.')) return;
+    state.elements = [];
+    state.wires = [];
+    state.selectedId = null;
+    state.wireStartId = null;
+    render();
+    save();
+    showToast('Схема очищена');
+}
+
+// ============================================================
+// ПЕЧАТЬ
+// ============================================================
+function printSchema() {
+    if (state.elements.length === 0) {
+        showToast('Нечего печатать — схема пуста', 'error');
+        return;
+    }
+    setStatus('Подготовка к печати...');
+    // Небольшая задержка, чтобы браузер успел применить print styles
+    setTimeout(() => {
+        window.print();
+        setStatus('Готов к работе');
+    }, 100);
+}
+
+// ============================================================
+// ПРИВЯЗКА КНОПОК
+// ============================================================
+document.getElementById('btn-select').onclick = () => {
+    state.mode = 'select';
+    state.wireStartId = null;
+    setStatus('Режим выбора активен');
+    render();
+};
+document.getElementById('btn-wire').onclick = () => {
+    state.mode = state.mode === 'wire' ? 'select' : 'wire';
+    state.wireStartId = null;
+    setStatus(state.mode === 'wire' ? 'Режим проводов. Кликните на первый элемент.' : 'Режим выбора активен');
+    render();
+};
+document.getElementById('btn-price').onclick = openModal;
+document.getElementById('btn-toggle-prices').onclick = () => {
+    state.pricesVisible = !state.pricesVisible;
+    render();
+    setStatus(state.pricesVisible ? 'Цены отображаются на схеме' : 'Цены скрыты');
+};
+document.getElementById('btn-save').onclick = exportProject;
+document.getElementById('btn-load').onclick = importProject;
+document.getElementById('btn-print').onclick = printSchema;
+document.getElementById('btn-clear').onclick = clearAll;
+
+document.getElementById('priceSearch').oninput = (e) => renderPriceList(e.target.value);
+
+// Клик по холсту - снять выделение / отменить провод
+canvas.addEventListener('pointerdown', (e) => {
+    if (e.target === canvas || e.target === svg || e.target.tagName === 'svg') {
+        state.selectedId = null;
+        if (state.wireStartId) {
+            state.wireStartId = null;
+            setStatus(state.mode === 'wire' ? 'Соединение отменено. Кликните на элемент.' : 'Готово');
+        }
+        render();
+    }
+});
+
+// Закрытие модалки по клику на backdrop
+document.getElementById('priceModal').addEventListener('click', (e) => {
+    if (e.target.id === 'priceModal') closeModal();
+});
+
+// Горячие клавиши
+document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT') return;
+
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (state.selectedId) {
+            const id = state.selectedId;
+            state.elements = state.elements.filter(el => el.id !== id);
+            state.wires = state.wires.filter(w => w.fromId !== id && w.toId !== id);
+            state.selectedId = null;
+            render();
+            save();
+            showToast('Элемент удалён');
+            e.preventDefault();
+        }
+    } else if (e.key === 'Escape') {
+        state.selectedId = null;
+        state.wireStartId = null;
+        state.mode = 'select';
+        closeModal();
+        render();
+    } else if (e.key === 'v' || e.key === 'V' || e.key === 'м' || e.key === 'М') {
+        document.getElementById('btn-select').click();
+    } else if (e.key === 'w' || e.key === 'W' || e.key === 'ц' || e.key === 'Ц') {
+        document.getElementById('btn-wire').click();
+    }
+});
+
+// Предотвращение контекстного меню
+document.addEventListener('contextmenu', (e) => e.preventDefault());
+
+// Автосохранение перед закрытием
+window.addEventListener('beforeunload', save);
+
+// ============================================================
+// СТАРТ
+// ============================================================
+function init() {
+    renderToolbox();
+    if (load()) {
+        showToast('Предыдущий проект восстановлен ✓');
+        setStatus('Проект загружен');
+    } else {
+        setStatus('Готов к работе. Выберите компонент из библиотеки.');
+    }
+    render();
+}
+
+init();
+</script>
+</body>
+</html>
