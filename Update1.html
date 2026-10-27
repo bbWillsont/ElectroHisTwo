@@ -1,0 +1,797 @@
+<style>
+.sch-wrap{display:grid;grid-template-columns:216px minmax(0,1fr);gap:14px;align-items:start}
+.sch-side{display:flex;flex-direction:column;gap:12px;min-width:0}
+.sch-pal{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px;max-height:min(56vh,520px);overflow-y:auto}
+.sch-pal h5{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);font-weight:700;margin:8px 2px 6px}
+.sch-pal h5:first-child{margin-top:0}
+.sch-pal button{display:flex;width:100%;gap:8px;align-items:center;border:1px solid var(--line);background:var(--field);border-radius:9px;padding:6px 8px;margin-bottom:6px;color:var(--ink);font-size:11.5px;font-weight:500;text-align:left;line-height:1.2}
+.sch-pal button:hover{border-color:var(--yel);color:var(--yelT)}
+.sch-pal svg{width:36px;height:28px;flex:none;overflow:visible}
+.sch-canvas{position:relative;background:var(--field);border:1px solid var(--line);border-radius:16px;overflow:hidden;height:min(72vh,760px);touch-action:none;cursor:grab}
+.sch-canvas.dragging{cursor:grabbing}
+.sch-svg{width:100%;height:100%;display:block;user-select:none;-webkit-user-select:none}
+.sch-zoom{position:absolute;left:10px;bottom:10px;display:flex;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:4px;box-shadow:var(--sh)}
+.sch-zoom button{width:28px;height:28px;border:none;border-radius:7px;background:transparent;color:var(--mut);font-size:14px;font-weight:700}
+.sch-zoom button:hover{background:var(--card2);color:var(--ink)}
+.sch-zoom .zl{display:inline-flex;align-items:center;padding:0 8px;font-family:var(--mono);font-size:11px;color:var(--dim);min-width:44px;justify-content:center}
+.sch-hint{position:absolute;right:10px;bottom:10px;font-size:10.5px;color:var(--dim);background:var(--card);border:1px solid var(--line);border-radius:9px;padding:5px 9px;pointer-events:none;max-width:62%}
+.schg .body{fill:var(--card2);stroke:var(--line2);stroke-width:1.5}
+.schg .ln{stroke:var(--ink);stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.schg .t1{font:600 8.5px 'Golos Text',sans-serif;fill:var(--ink)}
+.schg .t2{font:500 7.5px 'JetBrains Mono',monospace;fill:var(--mut)}
+.schg .lbl{font:700 9px 'Golos Text',sans-serif;fill:var(--yelT)}
+.schg .dot{fill:var(--ink)}
+.schg .wire{fill:none;stroke:var(--ink);stroke-width:1.8;stroke-linejoin:round;stroke-linecap:round}
+.schg .wire-hit{fill:none;stroke:transparent;stroke-width:14;cursor:pointer}
+.schg .tmp{stroke:var(--yel);stroke-dasharray:5 4;stroke-width:1.8;fill:none}
+.schg .pin{fill:var(--field);stroke:var(--line2);stroke-width:1.2}
+.schg .pin-hit{fill:transparent}
+.schg .gridln{stroke:var(--line)}
+.schg .sel .body{stroke:var(--yel);stroke-width:2.2}
+.schg .sel .wire{stroke:var(--yel)}
+.sch-node{cursor:move}
+.sch-chip{margin-left:2px}
+@media (max-width:900px){
+  .sch-wrap{grid-template-columns:1fr}
+  .sch-side{flex-direction:column}
+  .sch-pal{max-height:190px;display:flex;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;gap:6px;align-items:flex-start}
+  .sch-pal h5{display:none}
+  .sch-pal button{width:auto;flex:none;flex-direction:column;gap:3px;text-align:center;font-size:10px;max-width:86px;margin-bottom:0}
+  .sch-pal svg{width:44px;height:30px}
+  .sch-canvas{height:60vh}
+  .sch-hint{display:none}
+  .sch-chip{display:none}
+}
+</style>
+<script>
+(function(){
+"use strict";
+var KEY="pult_schemes_v1", GRID=10;
+var SCE={id:null,sel:null,zoom:1,px:60,py:40,wire:null,tmp:null,drag:null,pan:null};
+var db={}, timer=null;
+
+function snap(v){ return Math.round(v/GRID)*GRID; }
+function _p(id,x,y){ return {id:id,x:x,y:y}; }
+function _rb(x,y,w,h,rx){ return '<rect class="body" x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" rx="'+(rx==null?5:rx)+'"/>'; }
+function _t(x,y,s,c){ return '<text class="'+(c||"t1")+'" x="'+x+'" y="'+y+'" text-anchor="middle">'+esc(s)+'</text>'; }
+function _sw(cx,cy){ return '<path class="ln" d="M'+(cx-9)+' '+cy+'h5M'+(cx+4)+' '+cy+'h5M'+(cx-4)+' '+cy+'l8 -8"/>'; }
+function busDef(name,des){ return {g:"Шины и клеммы",n:name,w:180,h:22,
+  pins:[_p("i",0,11),_p("t1",36,20),_p("t2",72,20),_p("t3",108,20),_p("t4",144,20),_p("e",180,11)],
+  d:function(n){ return '<rect class="body" x="0" y="7" width="180" height="10" rx="2"/>'+_t(90,5,n.rating||des,"t2"); }}; }
+
+var LIB={
+  input:{g:"Питание",n:"Ввод",w:64,h:44,pins:[_p("out",32,44)],d:function(n){
+    return _rb(0,0,64,44)+_t(32,19,"Ввод")+_t(32,32,n.rating||"","t2")+'<path class="ln" d="M32 38v6"/>';}},
+  meter:{g:"Питание",n:"Счётчик",w:60,h:48,pins:[_p("in",30,0),_p("out",30,48)],d:function(n){
+    return _rb(0,0,60,48)+_t(30,22,"кВт·ч")+_t(30,35,n.rating||"","t2")+'<path class="ln" d="M30 0v8M30 40v8"/>';}},
+  generator:{g:"Питание",n:"Генератор / ИБП",w:64,h:48,pins:[_p("out",32,48)],d:function(n){
+    return _rb(0,0,64,48)+_t(32,21,"≈ G")+_t(32,34,n.rating||"","t2");}},
+  transformer:{g:"Питание",n:"Трансформатор",w:64,h:56,pins:[_p("in",32,0),_p("out",32,56)],d:function(n){
+    return '<circle class="ln" cx="32" cy="20" r="10"/><circle class="ln" cx="32" cy="34" r="10"/>'
+      +_t(52,32,"T","t2")+'<path class="ln" d="M32 0v10M32 44v12"/>';}},
+  main:{g:"Аппараты защиты",n:"Вводной автомат 3P",w:74,h:54,pins:[_p("in",37,0),_p("out",37,54)],d:function(n){
+    return _rb(0,0,74,54)+_sw(37,20)+_t(37,38,n.rating||"","t2")+_t(37,49,"3P","t2");}},
+  breaker1:{g:"Аппараты защиты",n:"Автомат 1P",w:38,h:54,pins:[_p("in",19,0),_p("out",19,54)],d:function(n){
+    return _rb(0,0,38,54)+_sw(19,20)+_t(19,40,n.rating||"","t2");}},
+  breaker3:{g:"Аппараты защиты",n:"Автомат 3P",w:66,h:54,pins:[_p("in",33,0),_p("out",33,54)],d:function(n){
+    return _rb(0,0,66,54)+_sw(33,20)+_t(33,40,n.rating||"","t2")+_t(33,50,"3P","t2");}},
+  rcd:{g:"Аппараты защиты",n:"УЗО",w:58,h:54,pins:[_p("in",29,0),_p("out",29,54)],d:function(n){
+    return _rb(0,0,58,54)+'<circle class="ln" cx="29" cy="19" r="9"/>'+_t(29,22,"IΔ","t2")+_t(29,43,n.rating||"","t2");}},
+  dif:{g:"Аппараты защиты",n:"Дифавтомат",w:52,h:54,pins:[_p("in",26,0),_p("out",26,54)],d:function(n){
+    return _rb(0,0,52,54)+'<circle class="ln" cx="26" cy="17" r="8"/>'+_sw(26,38)+_t(26,50,n.rating||"","t2");}},
+  spd:{g:"Аппараты защиты",n:"УЗИП",w:48,h:54,pins:[_p("in",24,0),_p("out",24,54)],d:function(n){
+    return _rb(0,0,48,54)+'<path class="ln" d="M24 14l-7 12h14l-7 12"/>'+_t(24,50,n.rating||"","t2");}},
+  contactor:{g:"Коммутация",n:"Контактор",w:58,h:54,pins:[_p("in",29,0),_p("out",29,54)],d:function(n){
+    return _rb(0,0,58,54)+_sw(29,20)+'<rect class="ln" x="19" y="33" width="20" height="8" rx="2"/>'+_t(29,50,n.rating||"","t2");}},
+  busL:busDef("Шина L","L"), busN:busDef("Шина N","N"), busPE:busDef("Шина PE","PE"),
+  terminal:{g:"Шины и клеммы",n:"Клеммник",w:40,h:22,pins:[_p("a",0,11),_p("b",40,11)],d:function(n){
+    return _rb(0,3,40,16,3)+'<circle class="ln" cx="12" cy="11" r="2.6"/><circle class="ln" cx="28" cy="11" r="2.6"/>';}},
+  junction:{g:"Шины и клеммы",n:"Узел (тройник)",w:14,h:14,pins:[_p("c",7,7)],d:function(n){
+    return '<circle class="dot" cx="7" cy="7" r="3.4"/>';}},
+  socket:{g:"Потребители",n:"Розетка",w:44,h:56,pins:[_p("in",22,0)],d:function(n){
+    return '<circle class="body" cx="22" cy="24" r="16"/><circle class="ln" cx="16" cy="24" r="2.4"/><circle class="ln" cx="28" cy="24" r="2.4"/>'+_t(22,53,n.rating||"","t2");}},
+  lamp:{g:"Потребители",n:"Светильник",w:44,h:56,pins:[_p("in",22,0)],d:function(n){
+    return '<circle class="body" cx="22" cy="24" r="15"/><path class="ln" d="M14 16l16 16M30 16L14 32"/>'+_t(22,53,n.rating||"","t2");}},
+  motor:{g:"Потребители",n:"Двигатель",w:48,h:60,pins:[_p("in",24,0)],d:function(n){
+    return '<circle class="body" cx="24" cy="26" r="17"/>'+_t(24,30,"M")+_t(24,57,n.rating||"","t2");}},
+  load:{g:"Потребители",n:"Нагрузка (ТЭН)",w:44,h:56,pins:[_p("in",22,0)],d:function(n){
+    return _rb(8,10,28,28,4)+_t(22,30,"R")+_t(22,53,n.rating||"","t2")+'<path class="ln" d="M22 0v10M22 38v8"/>';}},
+  ground:{g:"Потребители",n:"Заземление",w:40,h:40,pins:[_p("in",20,0)],d:function(n){
+    return '<path class="ln" d="M20 0v16M6 16h28M11 24h18M16 32h8"/>';}},
+  label:{g:"Прочее",n:"Подпись",w:120,h:22,nolabel:true,pins:[],d:function(n){
+    return _t(60,15,n.label||"Подпись");}}
+};
+var PREFIX={main:"QF",breaker1:"QF",breaker3:"QF",rcd:"QD",dif:"QD",contactor:"KM",spd:"FV",meter:"PI",
+  input:"",generator:"G",transformer:"T",terminal:"X",socket:"XS",lamp:"HL",motor:"M",load:"EK",
+  ground:"",busL:"",busN:"",busPE:"",junction:"",label:""};
+var SVG_STYLE='<style>'
+ +'.body{fill:#ffffff;stroke:#14181f;stroke-width:1.5}'
+ +'.ln{stroke:#14181f;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round}'
+ +'.t1{font-family:Arial,Helvetica,sans-serif;font-size:8.5px;font-weight:700;fill:#14181f}'
+ +'.t2{font-family:"Courier New",monospace;font-size:7.5px;fill:#666666}'
+ +'.lbl{font-family:Arial,Helvetica,sans-serif;font-size:9px;font-weight:700;fill:#14181f}'
+ +'.dot{fill:#14181f}'
+ +'.wire{fill:none;stroke:#14181f;stroke-width:1.8;stroke-linejoin:round;stroke-linecap:round}'
+ +'.wire-hit,.pin-hit{fill:none;stroke:none}'
+ +'.pin{fill:#ffffff;stroke:#14181f;stroke-width:1.2}'
+ +'</style>';
+
+function loadDb(){ try{ var raw=lsGet(KEY); var o=raw?JSON.parse(raw):null; return (o&&typeof o==="object")?o:{}; }catch(e){ return {}; } }
+function saveDb(){ try{ lsSet(KEY,JSON.stringify(db)); }catch(e){ toast("Не удалось сохранить схемы","err"); } updBadge(); }
+function saveSoon(){ var sc=SCE.id?byId(SCE.id):null; if(sc) sc.updatedAt=today(); clearTimeout(timer); timer=setTimeout(saveDb,350); }
+function byId(id){ var r=null; Object.keys(db).forEach(function(k){ (db[k]||[]).forEach(function(s){ if(s.id===id) r=s; }); }); return r; }
+function listOf(pid){ if(!db[pid]) db[pid]=[]; return db[pid]; }
+function cur(){ return SCE.id?byId(SCE.id):null; }
+function nodeById(sc,id){ return sc?sc.nodes.filter(function(n){return n.id===id;})[0]:null; }
+function pinAbs(sc,ref){ var n=nodeById(sc,ref.n); if(!n) return null; var c=LIB[n.type]; if(!c) return null;
+  var p=c.pins.filter(function(x){return x.id===ref.p;})[0]; if(!p) return null; return {x:n.x+p.x,y:n.y+p.y}; }
+function routePts(A,B){ if(Math.abs(A.x-B.x)<1.5||Math.abs(A.y-B.y)<1.5) return [A,B];
+  var mx=Math.round((A.x+B.x)/2/GRID)*GRID; return [A,{x:mx,y:A.y},{x:mx,y:B.y},B]; }
+function pathD(pts){ return pts.map(function(p,i){return (i?"L":"M")+p.x+" "+p.y;}).join(" "); }
+
+function nodeSvg(n){
+  var c=LIB[n.type]; if(!c) return "";
+  var sel=SCE.sel&&SCE.sel.k==="node"&&SCE.sel.id===n.id;
+  var g='<g class="sch-node'+(sel?" sel":"")+'" data-node="'+n.id+'" transform="translate('+n.x+','+n.y+')">'+c.d(n);
+  if(!c.nolabel) g+='<text class="lbl" x="0" y="-6">'+esc(n.label||"")+'</text>';
+  c.pins.forEach(function(p){
+    g+='<circle class="pin" cx="'+p.x+'" cy="'+p.y+'" r="4"/>'
+      +'<circle class="pin-hit" data-node="'+n.id+'" data-pin="'+p.id+'" cx="'+p.x+'" cy="'+p.y+'" r="12"/>';
+  });
+  return g+'</g>';
+}
+function wireSvg(w,sc){
+  var A=pinAbs(sc,w.a), B=pinAbs(sc,w.b); if(!A||!B) return "";
+  var pts=routePts(A,B), d=pathD(pts);
+  var sel=SCE.sel&&SCE.sel.k==="wire"&&SCE.sel.id===w.id;
+  var h='<g class="sch-wire'+(sel?" sel":"")+'" data-wire="'+w.id+'">'
+    +'<path class="wire" d="'+d+'"/><path class="wire-hit" d="'+d+'"/>';
+  if(w.label){
+    var m=pts.length>=4?{x:(pts[1].x+pts[2].x)/2,y:(pts[1].y+pts[2].y)/2}:{x:(pts[0].x+pts[1].x)/2,y:(pts[0].y+pts[1].y)/2};
+    h+='<text class="t2" x="'+m.x+'" y="'+(m.y-4)+'" text-anchor="middle">'+esc(w.label)+'</text>';
+  }
+  return h+'</g>';
+}
+function renderSvg(){
+  var svg=document.getElementById("schSvg"); if(!svg) return;
+  var sc=cur(); if(!sc) return;
+  var g='<g id="schContent" transform="translate('+SCE.px+','+SCE.py+') scale('+SCE.zoom+')">'
+    +'<rect x="-6000" y="-6000" width="12000" height="12000" fill="url(#schGrid)"/>'
+    +sc.wires.map(function(w){return wireSvg(w,sc);}).join("")
+    +sc.nodes.map(nodeSvg).join("")
+    +(SCE.tmp?'<path class="wire tmp" d="'+SCE.tmp+'"/>':"")
+    +'</g>';
+  svg.innerHTML='<defs><pattern id="schGrid" width="20" height="20" patternUnits="userSpaceOnUse">'
+    +'<path class="gridln" d="M 20 0 L 0 0 0 20" fill="none" stroke-width="1"/></pattern></defs>'+g;
+}
+function updZoom(){ var e=document.getElementById("schZoom"); if(e) e.textContent=Math.round(SCE.zoom*100)+"%"; }
+function toWorld(e){
+  var svg=document.getElementById("schSvg"), r=svg.getBoundingClientRect();
+  return {x:(e.clientX-r.left-SCE.px)/SCE.zoom, y:(e.clientY-r.top-SCE.py)/SCE.zoom};
+}
+function addWire(a,b){
+  var sc=cur(); if(!sc) return;
+  var dup=sc.wires.some(function(w){
+    return (w.a.n===a.n&&w.a.p===a.p&&w.b.n===b.n&&w.b.p===b.p)||(w.a.n===b.n&&w.a.p===b.p&&w.b.n===a.n&&w.b.p===a.p);
+  });
+  if(dup){ toast("Эти клеммы уже соединены","err"); return; }
+  sc.wires.push({id:uid(),a:{n:a.n,p:a.p},b:{n:b.n,p:b.p},label:""});
+  saveSoon();
+}
+function mountCanvas(){
+  var svg=document.getElementById("schSvg");
+  if(!svg||svg.dataset.mounted) return;
+  svg.dataset.mounted="1";
+  svg.addEventListener("pointerdown",function(e){
+    var sc=cur(); if(!sc) return;
+    var t=e.target;
+    var pinEl=t.closest?t.closest("[data-pin]"):null;
+    var nodeEl=t.closest?t.closest("[data-node]"):null;
+    var wireEl=t.closest?t.closest("[data-wire]"):null;
+    try{ svg.setPointerCapture(e.pointerId); }catch(err){}
+    if(pinEl){
+      var ref={n:pinEl.getAttribute("data-node"),p:pinEl.getAttribute("data-pin")};
+      if(SCE.wire){
+        if(!(SCE.wire.n===ref.n&&SCE.wire.p===ref.p)) addWire(SCE.wire,ref);
+        SCE.wire=null; SCE.tmp=null; renderSvg();
+      } else { SCE.wire=ref; SCE.tmp=null; SCE.drag=null; SCE.pan=null; }
+      e.preventDefault(); return;
+    }
+    if(nodeEl){
+      var n=nodeById(sc,nodeEl.getAttribute("data-node")); if(!n) return;
+      SCE.sel={k:"node",id:n.id};
+      var wp=toWorld(e);
+      SCE.drag={id:n.id,dx:wp.x-n.x,dy:wp.y-n.y};
+      renderSvg(); renderProps(); e.preventDefault(); return;
+    }
+    if(wireEl){ SCE.sel={k:"wire",id:wireEl.getAttribute("data-wire")}; renderSvg(); renderProps(); e.preventDefault(); return; }
+    SCE.sel=null; SCE.wire=null; SCE.tmp=null;
+    SCE.pan={sx:e.clientX,sy:e.clientY,px:SCE.px,py:SCE.py};
+    var cv=document.getElementById("schCanvas"); if(cv) cv.classList.add("dragging");
+    renderSvg(); renderProps(); e.preventDefault();
+  });
+  svg.addEventListener("pointermove",function(e){
+    if(SCE.drag){
+      var sc=cur(), n=nodeById(sc,SCE.drag.id); if(!n) return;
+      var p=toWorld(e);
+      n.x=snap(p.x-SCE.drag.dx); n.y=snap(p.y-SCE.drag.dy);
+      renderSvg(); return;
+    }
+    if(SCE.pan){
+      SCE.px=SCE.pan.px+(e.clientX-SCE.pan.sx);
+      SCE.py=SCE.pan.py+(e.clientY-SCE.pan.sy);
+      renderSvg(); return;
+    }
+    if(SCE.wire){
+      var sc2=cur(), A=pinAbs(sc2,SCE.wire);
+      if(A){ SCE.tmp=pathD(routePts(A,toWorld(e))); renderSvg(); }
+    }
+  });
+  svg.addEventListener("pointerup",function(e){
+    try{ svg.releasePointerCapture(e.pointerId); }catch(err){}
+    if(SCE.drag){ SCE.drag=null; saveSoon(); renderProps(); }
+    if(SCE.pan){ SCE.pan=null; var cv=document.getElementById("schCanvas"); if(cv) cv.classList.remove("dragging"); }
+    if(SCE.wire){
+      var el=document.elementFromPoint(e.clientX,e.clientY);
+      var pe=el&&el.closest?el.closest("[data-pin]"):null;
+      if(pe){
+        var ref={n:pe.getAttribute("data-node"),p:pe.getAttribute("data-pin")};
+        if(!(SCE.wire.n===ref.n&&SCE.wire.p===ref.p)){
+          addWire(SCE.wire,ref); SCE.wire=null; SCE.tmp=null; renderSvg();
+        }
+      }
+    }
+  });
+  svg.addEventListener("pointercancel",function(){ SCE.drag=null; SCE.pan=null; });
+  svg.addEventListener("wheel",function(e){
+    if(!SCE.id) return;
+    e.preventDefault();
+    var r=svg.getBoundingClientRect(), mx=e.clientX-r.left, my=e.clientY-r.top;
+    var wx=(mx-SCE.px)/SCE.zoom, wy=(my-SCE.py)/SCE.zoom;
+    var nz=Math.min(3,Math.max(0.25,SCE.zoom*(e.deltaY<0?1.12:1/1.12)));
+    SCE.px=mx-wx*nz; SCE.py=my-wy*nz; SCE.zoom=nz;
+    renderSvg(); updZoom();
+  },{passive:false});
+}
+
+function renderPalette(){
+  var el=document.getElementById("schPal"); if(!el) return;
+  var groups={}, order=[];
+  Object.keys(LIB).forEach(function(k){
+    var c=LIB[k]; if(!groups[c.g]){ groups[c.g]=[]; order.push(c.g); }
+    groups[c.g].push({k:k,c:c});
+  });
+  el.innerHTML=order.map(function(g){
+    return '<h5>'+esc(g)+'</h5>'+groups[g].map(function(it){
+      var c=it.c, vb="-2 -13 "+(c.w+4)+" "+(c.h+18);
+      return '<button data-sch="add" data-type="'+it.k+'">'
+        +'<svg class="schg" viewBox="'+vb+'" preserveAspectRatio="xMidYMid meet">'+c.d({label:"",rating:""})+'</svg>'
+        +'<span>'+esc(c.n)+'</span></button>';
+    }).join("");
+  }).join("");
+}
+function renderProps(){
+  var el=document.getElementById("schProps"); if(!el) return;
+  var sc=cur();
+  if(!sc){ el.innerHTML=""; return; }
+  var head='<div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);font-weight:700;margin-bottom:8px">Свойства</div>';
+  var sel=SCE.sel;
+  if(!sel){ el.innerHTML=head+'<div style="color:var(--dim);font-size:12.5px">Выберите элемент на схеме.</div>'; return; }
+  if(sel.k==="node"){
+    var n=nodeById(sc,sel.id);
+    if(!n){ SCE.sel=null; return renderProps(); }
+    var c=LIB[n.type];
+    el.innerHTML=head
+      +'<label style="display:block;font-size:11px;color:var(--dim);margin-bottom:5px">Обозначение</label>'
+      +'<input class="inp" data-prop="label" value="'+esc(n.label||"")+'" placeholder="QF1">'
+      +'<label style="display:block;font-size:11px;color:var(--dim);margin:10px 0 5px">Номинал / характеристика</label>'
+      +'<input class="inp" data-prop="rating" value="'+esc(n.rating||"")+'" placeholder="C16">'
+      +'<div style="font-size:11.5px;color:var(--dim);margin-top:10px">'+esc(c.n)+'</div>'
+      +'<div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap">'
+      +'<button class="btn btn-ghost btn-sm" data-sch="dup-sel">⧉ Дублировать</button>'
+      +'<button class="btn btn-red btn-sm" data-sch="del-sel">Удалить</button></div>';
+  } else {
+    var w=sc.wires.filter(function(x){return x.id===sel.id;})[0];
+    if(!w){ SCE.sel=null; return renderProps(); }
+    el.innerHTML=head
+      +'<label style="display:block;font-size:11px;color:var(--dim);margin-bottom:5px">Подпись линии</label>'
+      +'<input class="inp" data-prop="label" value="'+esc(w.label||"")+'" placeholder="L1 3×2,5">'
+      +'<div style="font-size:11.5px;color:var(--dim);margin-top:10px">Электрическая связь</div>'
+      +'<div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap">'
+      +'<button class="btn btn-red btn-sm" data-sch="del-sel">Удалить</button></div>';
+  }
+}
+function delSel(){
+  var sc=cur(); if(!sc||!SCE.sel) return;
+  if(SCE.sel.k==="node"){
+    var id=SCE.sel.id;
+    sc.nodes=sc.nodes.filter(function(n){return n.id!==id;});
+    sc.wires=sc.wires.filter(function(w){return w.a.n!==id&&w.b.n!==id;});
+  } else {
+    var wid=SCE.sel.id;
+    sc.wires=sc.wires.filter(function(w){return w.id!==wid;});
+  }
+  SCE.sel=null; saveSoon(); renderSvg(); renderProps();
+}
+function addNode(type){
+  var sc=cur(); if(!sc) return;
+  var c=LIB[type]; if(!c) return;
+  var cv=document.getElementById("schCanvas");
+  var cx=((cv?cv.clientWidth/2:400)-SCE.px)/SCE.zoom-c.w/2;
+  var cy=((cv?cv.clientHeight/2:300)-SCE.py)/SCE.zoom-c.h/2;
+  var n={id:uid(),type:type,x:snap(cx),y:snap(cy),label:"",rating:""};
+  var guard=0;
+  while(sc.nodes.some(function(o){return Math.abs(o.x-n.x)<6&&Math.abs(o.y-n.y)<6;})&&guard++<40){ n.x+=20; n.y+=20; }
+  var pre=PREFIX[type];
+  if(pre){
+    var k=sc.nodes.filter(function(o){return (PREFIX[o.type]||"")===pre&&o.label;}).length+1;
+    n.label=pre+k;
+  }
+  sc.nodes.push(n);
+  SCE.sel={k:"node",id:n.id};
+  saveSoon(); renderSvg(); renderProps();
+}
+function contentBBox(sc){
+  var xs=[],ys=[];
+  sc.nodes.forEach(function(n){ var c=LIB[n.type]; if(!c) return; xs.push(n.x,n.x+c.w); ys.push(n.y,n.y+c.h); });
+  sc.wires.forEach(function(w){ var A=pinAbs(sc,w.a),B=pinAbs(sc,w.b); if(A){xs.push(A.x);ys.push(A.y);} if(B){xs.push(B.x);ys.push(B.y);} });
+  if(!xs.length) return {x:0,y:0,w:200,h:140};
+  var x1=Math.min.apply(null,xs)-10, x2=Math.max.apply(null,xs)+10;
+  var y1=Math.min.apply(null,ys)-18, y2=Math.max.apply(null,ys)+10;
+  return {x:x1,y:y1,w:x2-x1,h:y2-y1};
+}
+function fitView(){
+  var sc=cur(), cv=document.getElementById("schCanvas"); if(!sc||!cv) return;
+  var bb=contentBBox(sc);
+  var z=Math.min((cv.clientWidth-60)/bb.w,(cv.clientHeight-60)/bb.h,1.6);
+  SCE.zoom=Math.max(0.25,z||1);
+  SCE.px=(cv.clientWidth-bb.w*SCE.zoom)/2-bb.x*SCE.zoom;
+  SCE.py=(cv.clientHeight-bb.h*SCE.zoom)/2-bb.y*SCE.zoom;
+  renderSvg(); updZoom();
+}
+function svgString(sc){
+  var oldSel=SCE.sel, oldTmp=SCE.tmp;
+  SCE.sel=null; SCE.tmp=null;
+  var body=sc.wires.map(function(w){return wireSvg(w,sc);}).join("")+sc.nodes.map(nodeSvg).join("");
+  SCE.sel=oldSel; SCE.tmp=oldTmp;
+  var bb=contentBBox(sc), pad=24, W=bb.w+pad*2, H=bb.h+pad*2;
+  return '<?xml version="1.0" encoding="UTF-8"?>'
+    +'<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'" viewBox="'+(bb.x-pad)+' '+(bb.y-pad)+' '+W+' '+H+'">'
+    +'<rect x="'+(bb.x-pad)+'" y="'+(bb.y-pad)+'" width="'+W+'" height="'+H+'" fill="#ffffff"/>'
+    +SVG_STYLE+body+'</svg>';
+}
+function svgForDoc(sc, maxW){
+  maxW = maxW || 700;
+  var s = svgString(sc).replace(/<\?xml[^>]*\?>/,"");
+  var m = s.match(/width="(\d+)"\s+height="(\d+)"/);
+  if(m){
+    var W = parseInt(m[1],10), H = parseInt(m[2],10);
+    if(W > maxW){
+      var k = maxW / W;
+      s = s.replace(/width="\d+"\s+height="\d+"/, 'width="'+maxW+'" height="'+Math.round(H*k)+'"');
+    }
+  }
+  return s;
+}
+function exportSvg(sc){
+  if(!sc||!sc.nodes.length){ toast("Схема пуста","err"); return; }
+  downloadBlob(new Blob([svgString(sc)],{type:"image/svg+xml;charset=utf-8"}),"sxema-"+translit(sc.name)+".svg");
+  toast("SVG сохранён","ok");
+}
+function exportPng(sc){
+  if(!sc||!sc.nodes.length){ toast("Схема пуста","err"); return; }
+  var img=new Image();
+  img.onload=function(){
+    var c=document.createElement("canvas");
+    c.width=img.width*2; c.height=img.height*2;
+    var x=c.getContext("2d");
+    x.fillStyle="#fff"; x.fillRect(0,0,c.width,c.height);
+    x.drawImage(img,0,0,c.width,c.height);
+    if(c.toBlob) c.toBlob(function(b){ downloadBlob(b,"sxema-"+translit(sc.name)+".png"); toast("PNG сохранён","ok"); },"image/png");
+    else toast("PNG не поддерживается","err");
+  };
+  img.onerror=function(){ toast("Не удалось отрисовать PNG","err"); };
+  img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svgString(sc));
+}
+function printScheme(sc){
+  if(!sc||!sc.nodes.length){ toast("Схема пуста","err"); return; }
+  var svg=svgForDoc(sc, 700).replace(/<\?xml[^>]*\?>/,"");
+  openPrintWindow('<div style="text-align:center">'
+    +'<div style="font-family:Unbounded,sans-serif;font-size:15px;font-weight:600;margin:0 0 12px">'+esc(sc.name)+'</div>'
+    +svg+'</div>');
+}
+function specGroups(sc){
+  var g={}, order=[];
+  sc.nodes.forEach(function(n){
+    var c=LIB[n.type]; if(!c) return;
+    var k=n.type+"|"+(n.rating||"");
+    if(!g[k]){ g[k]={name:c.n,rating:n.rating||"",labels:[],qty:0}; order.push(k); }
+    g[k].qty++; if(n.label) g[k].labels.push(n.label);
+  });
+  return {g:g,order:order};
+}
+function specTableHtml(sc){
+  var s=specGroups(sc);
+  if(!s.order.length) return "";
+  var rows=s.order.map(function(k,i){
+    var x=s.g[k];
+    return '<tr><td class="ctr">'+(i+1)+'</td><td>'+esc(x.name)+'</td><td class="ctr">'+esc(x.rating||"—")+'</td><td class="ctr">'+x.qty+'</td></tr>';
+  }).join("");
+  return '<p style="margin:12px 0 6px;font-weight:700">Спецификация оборудования</p>'
+    +'<table class="dtbl '+tblCls()+'"><thead><tr><th style="width:30px">№</th><th>Аппарат / элемент</th><th style="width:120px">Номинал</th><th style="width:80px">Кол-во</th></tr></thead><tbody>'+rows+'</tbody></table>';
+}
+function specModal(sc){
+  var s=specGroups(sc);
+  var rows=s.order.map(function(k,i){
+    var x=s.g[k];
+    return '<tr><td class="cell-num">'+(i+1)+'</td><td>'+esc(x.name)+'</td><td>'+esc(x.rating||"—")+'</td>'
+      +'<td class="sumcell">'+x.qty+'</td><td style="font-size:12px;color:var(--mut)">'+esc(x.labels.join(", "))+'</td></tr>';
+  }).join("");
+  openModal('<h3>📋 Спецификация · '+esc(sc.name)+'</h3>'
+    +'<div class="tbl"><div class="tbl-scroll"><table><thead><tr><th>№</th><th>Аппарат / элемент</th><th>Номинал</th><th>Кол-во</th><th>Обозначения</th></tr></thead><tbody>'
+    +(rows||'<tr><td colspan="5" style="text-align:center;color:var(--dim);padding:24px">Схема пуста</td></tr>')
+    +'</tbody></table></div></div>'
+    +'<div class="modal-foot"><button class="btn btn-ghost" data-act="close">Закрыть</button>'
+    +'<button class="btn btn-ghost" data-sch="spec-xlsx" data-id="'+sc.id+'">⬇ Excel</button></div>');
+}
+
+/* ---------- Сборка полного пакета ---------- */
+function buildFullPack(pid){
+  var pk=projOf(pid); if(!pk){ toast("Проект не найден","err"); return; }
+  try{
+    var html=buildEstDoc(pk);
+    if(state.defects.filter(function(d){return d.projectId===pk.id;}).length){
+      html+='<div style="height:26px"></div>'+buildDefDoc(pk);
+    }
+    if(photosOf(pk).length){
+      html+='<div style="height:26px"></div><div class="doc">'
+        +docHeader('Приложение<br>от '+fmtD(today()))
+        +'<div class="doc-title">Фотофиксация</div>'
+        +photosHtmlArr(pk.photos)+'</div>';
+    }
+    var schemes=listOf(pk.id).filter(function(s){return s.nodes.length>0;});
+    schemes.forEach(function(sc){
+      html+='<div style="height:26px"></div><div class="doc"'+docStyle()+'>'
+        +docHeader('Приложение<br>от '+fmtD(today()))
+        +'<div class="doc-title">'+esc(sc.name)+'</div>'
+        +'<div style="text-align:center;margin:10px 0 6px">'+svgForDoc(sc, 700)+'</div>'
+        +specTableHtml(sc)
+        +'</div>';
+    });
+    actModal(html, "paket-"+translit(pk.name)+".pdf");
+  }catch(err){ toast("Ошибка пакета","err"); }
+}
+
+/* ---------- Рендер списка / редактора ---------- */
+function listHtml(p,list){
+  var cards=list.map(function(s){
+    return '<div class="pcard"><div class="stripe" style="background:var(--yel)"></div><div class="pcard-body">'
+      +'<h4>'+esc(s.name)+'</h4>'
+      +'<div class="meta"><span>🗓 обновлено '+fmtD(s.updatedAt||s.createdAt)+'</span>'
+      +'<span>⚙ аппаратов: '+s.nodes.length+' · связей: '+s.wires.length+'</span></div>'
+      +'<div class="acts">'
+      +'<button class="btn btn-amber btn-sm" data-sch="open" data-id="'+s.id+'">Открыть</button>'
+      +'<button class="btn btn-ghost btn-sm" data-sch="rename" data-id="'+s.id+'">✎</button>'
+      +'<button class="btn btn-ghost btn-sm" data-sch="dup-one" data-id="'+s.id+'" title="Дубликат">⧉</button>'
+      +'<button class="btn btn-ghost btn-sm" data-sch="move" data-id="'+s.id+'" title="Переместить в другой объект">↔</button>'
+      +'<button class="btn btn-ghost btn-sm" data-sch="svg-one" data-id="'+s.id+'">SVG</button>'
+      +'<button class="del-txt" data-sch="del-one" data-id="'+s.id+'">Удалить</button>'
+      +'</div></div></div>';
+  }).join("");
+  return '<div class="toolbar">'
+    +'<select class="inp" id="selSchProj" style="min-width:260px">'
+    +state.projects.map(function(x){return '<option value="'+x.id+'" '+(x.id===p.id?"selected":"")+'>'+esc(x.name)+'</option>';}).join("")
+    +'</select><div style="flex:1"></div>'
+    +'<button class="btn btn-ghost btn-sm" data-sch="export-all">⬇ Экспорт схем</button>'
+    +'<button class="btn btn-ghost btn-sm" data-sch="import-all">⬆ Импорт схем</button>'
+    +'<button class="btn btn-amber btn-sm" data-sch="new">+ Новая схема</button>'
+    +'</div>'
+    +'<div class="siteline">Объект: '+esc(p.name)+' · схем: '+list.length+'</div>'
+    +(list.length?'<div class="proj-grid">'+cards+'</div>'
+      :'<div class="empty"><b>Схем пока нет</b>Создайте первую схему щита.<br><br><button class="btn btn-amber" data-sch="new">+ Новая схема</button></div>');
+}
+function editorHtml(sc){
+  var p=projOf(ui.projectId);
+  var t=p?estTotals(estOf(p.id)):null;
+  var bind=p
+    ?'<span class="chip chip-amber sch-chip" title="Привязка: объект и его смета">📍 '+esc(p.name)+(t?' · смета '+fmt(t.it):'')+'</span>'
+    :'<span class="chip chip-red sch-chip">Не привязана</span>';
+  return '<div class="toolbar">'
+    +'<button class="btn btn-ghost btn-sm" data-sch="list">← Схемы</button>'
+    +'<input class="inp" id="schName" value="'+esc(sc.name)+'" maxlength="80" style="max-width:240px">'
+    +bind
+    +'<div style="flex:1"></div>'
+    +'<button class="btn btn-cyan btn-sm" data-sch="to-est" title="Перейти к смете объекта">→ К смете</button>'
+    +'<button class="btn btn-ghost btn-sm" data-sch="spec">📋 Спецификация</button>'
+    +'<button class="btn btn-ghost btn-sm" data-sch="svg">SVG</button>'
+    +'<button class="btn btn-ghost btn-sm" data-sch="png">PNG</button>'
+    +'<button class="btn btn-ghost btn-sm" data-sch="print">⎙ Печать</button>'
+    +'</div>'
+    +'<div class="sch-wrap">'
+    +'<div class="sch-side"><div class="sch-pal" id="schPal"></div><div class="card" id="schProps" style="padding:14px"></div></div>'
+    +'<div class="sch-canvas" id="schCanvas">'
+    +'<svg class="sch-svg schg" id="schSvg"></svg>'
+    +'<div class="sch-zoom"><button data-sch="zoom-out" title="Уменьшить">−</button>'
+    +'<span class="zl" id="schZoom">100%</span>'
+    +'<button data-sch="zoom-in" title="Увеличить">+</button>'
+    +'<button data-sch="fit" title="Вписать в экран">⤢</button></div>'
+    +'<div class="sch-hint">Клик по клемме — соединение · Del — удалить · колесо — зум</div>'
+    +'</div></div>';
+}
+function renderSchemes(){
+  var el=document.getElementById("view-schemes"); if(!el) return;
+  if(!state.projects.length){
+    el.innerHTML='<div class="empty"><b>Схемы привязаны к проектам</b>Сначала создайте проект.<br><br><button class="btn btn-amber" data-act="new-project">+ Создать проект</button></div>';
+    return;
+  }
+  ensureCurrentProject();
+  var p=projOf(ui.projectId); if(!p){ el.innerHTML=""; return; }
+  var list=listOf(p.id);
+  var sc=SCE.id?list.filter(function(s){return s.id===SCE.id;})[0]:null;
+  if(!sc){ SCE.id=null; el.innerHTML=listHtml(p,list); updBadge(); return; }
+  el.innerHTML=editorHtml(sc);
+  mountCanvas(); renderPalette(); renderSvg(); renderProps(); updZoom(); updBadge();
+}
+function updBadge(){
+  var n=0; Object.keys(db).forEach(function(k){ n+=(db[k]||[]).length; });
+  var b=document.getElementById("bSchemes"); if(b) b.textContent=n;
+}
+function newScheme(pid){
+  var sc={id:uid(),name:"Схема щита "+(listOf(pid).length+1),createdAt:today(),updatedAt:today(),nodes:[],wires:[]};
+  var a={id:uid(),type:"input",x:120,y:60,label:"",rating:"380/220 В"};
+  var b={id:uid(),type:"meter",x:122,y:130,label:"PI1",rating:""};
+  var c={id:uid(),type:"main",x:115,y:210,label:"QF1",rating:"C40"};
+  sc.nodes=[a,b,c];
+  sc.wires=[{id:uid(),a:{n:a.id,p:"out"},b:{n:b.id,p:"in"},label:""},
+            {id:uid(),a:{n:b.id,p:"out"},b:{n:c.id,p:"in"},label:""}];
+  listOf(pid).push(sc); saveDb();
+  return sc;
+}
+function openScheme(id){ SCE.id=id; SCE.sel=null; SCE.wire=null; SCE.tmp=null; SCE.zoom=1; SCE.px=60; SCE.py=40; renderSchemes(); requestAnimationFrame(fitView); }
+
+/* ---------- Обработчики кликов ---------- */
+document.addEventListener("click",function(e){
+  var b=e.target.closest?e.target.closest("[data-sch]"):null;
+  if(!b) return;
+  var a=b.getAttribute("data-sch"), id=b.getAttribute("data-id"), pid=ui.projectId;
+  if(a==="open"){ openScheme(id); return; }
+  if(a==="list"){ SCE.id=null; SCE.sel=null; renderSchemes(); return; }
+  if(a==="new"){ var s=newScheme(pid); openScheme(s.id); return; }
+  if(a==="rename"){
+    var sc=listOf(pid).filter(function(x){return x.id===id;})[0]; if(!sc) return;
+    var nm=prompt("Название схемы:",sc.name); if(!nm) return;
+    sc.name=String(nm).slice(0,80); sc.updatedAt=today(); saveDb(); renderSchemes(); return;
+  }
+  if(a==="dup-one"){
+    var src=listOf(pid).filter(function(x){return x.id===id;})[0]; if(!src) return;
+    var cp=JSON.parse(JSON.stringify(src));
+    cp.id=uid(); cp.name=src.name+" (копия)"; cp.createdAt=today(); cp.updatedAt=today();
+    var map={};
+    cp.nodes.forEach(function(n){ var nid=uid(); map[n.id]=nid; n.id=nid; });
+    cp.wires.forEach(function(w){ w.id=uid(); w.a.n=map[w.a.n]||w.a.n; w.b.n=map[w.b.n]||w.b.n; });
+    listOf(pid).push(cp); saveDb(); renderSchemes(); toast("Копия создана","ok"); return;
+  }
+  if(a==="del-one"){
+    var sc2=listOf(pid).filter(function(x){return x.id===id;})[0]; if(!sc2) return;
+    askConfirm("Удалить схему «"+sc2.name+"»?",function(){
+      db[pid]=(db[pid]||[]).filter(function(x){return x.id!==id;});
+      if(SCE.id===id) SCE.id=null;
+      saveDb(); renderSchemes(); toast("Схема удалена","err");
+    });
+    return;
+  }
+  if(a==="move"){
+    var scM=listOf(pid).filter(function(x){return x.id===id;})[0]; if(!scM) return;
+    var opts=state.projects.map(function(pp){
+      return '<option value="'+pp.id+'" '+(pp.id===pid?"selected":"")+'>'+esc(pp.name)+'</option>';
+    }).join("");
+    openModal('<h3>↔ Переместить схему</h3>'
+      +'<p style="color:var(--mut);font-size:13px;margin-bottom:10px">«'+esc(scM.name)+'»</p>'
+      +'<label style="font-size:11px;color:var(--dim);display:block;margin-bottom:5px">Новый объект</label>'
+      +'<select class="inp" id="schMoveTo">'+opts+'</select>'
+      +'<div class="modal-foot">'
+      +'<button class="btn btn-ghost" data-act="close">Отмена</button>'
+      +'<button class="btn btn-amber" data-sch="move-apply" data-id="'+scM.id+'" data-from="'+pid+'">Переместить</button>'
+      +'</div>');
+    return;
+  }
+  if(a==="move-apply"){
+    var to=(document.getElementById("schMoveTo")||{}).value;
+    var from=b.getAttribute("data-from");
+    if(!to||to===from){ closeModal(); toast("Уже в этом объекте"); return; }
+    var scMv=listOf(from).filter(function(x){return x.id===id;})[0]; if(!scMv){ closeModal(); return; }
+    db[from]=(db[from]||[]).filter(function(x){return x.id!==id;});
+    listOf(to).push(scMv); saveDb();
+    closeModal(); ui.projectId=to;
+    var tp=projOf(to);
+    toast("Схема перемещена"+(tp?" в «"+esc(tp.name)+"»":""),"ok");
+    renderSchemes();
+    return;
+  }
+  if(a==="to-est"){ go("estimates"); return; }
+  if(a==="svg-one"){ var sc3=listOf(pid).filter(function(x){return x.id===id;})[0]; exportSvg(sc3); return; }
+  if(a==="add"){ addNode(b.getAttribute("data-type")); return; }
+  if(a==="del-sel"){ delSel(); return; }
+  if(a==="dup-sel"){
+    var scd=cur(), n=scd&&SCE.sel&&SCE.sel.k==="node"?nodeById(scd,SCE.sel.id):null; if(!n) return;
+    var cp2={id:uid(),type:n.type,x:n.x+30,y:n.y+30,label:n.label,rating:n.rating};
+    scd.nodes.push(cp2); SCE.sel={k:"node",id:cp2.id}; saveSoon(); renderSvg(); renderProps(); return;
+  }
+  if(a==="zoom-in"||a==="zoom-out"){
+    var cv=document.getElementById("schCanvas"); if(!cv) return;
+    var mx=cv.clientWidth/2, my=cv.clientHeight/2;
+    var wx=(mx-SCE.px)/SCE.zoom, wy=(my-SCE.py)/SCE.zoom;
+    var nz=Math.min(3,Math.max(0.25,SCE.zoom*(a==="zoom-in"?1.2:1/1.2)));
+    SCE.px=mx-wx*nz; SCE.py=my-wy*nz; SCE.zoom=nz;
+    renderSvg(); updZoom(); return;
+  }
+  if(a==="fit"){ fitView(); return; }
+  if(a==="spec"){ var scs=cur(); if(scs) specModal(scs); return; }
+  if(a==="spec-xlsx"){
+    var scx=byId(id); if(!scx) return;
+    var s=specGroups(scx);
+    var aoa=[["Спецификация — "+scx.name],[],["№","Аппарат / элемент","Номинал","Кол-во","Обозначения"]];
+    s.order.forEach(function(k,i){ var g=s.g[k]; aoa.push([i+1,g.name,g.rating,g.qty,g.labels.join(", ")]); });
+    exportXlsx(aoa,"spec-"+translit(scx.name)+".xls","Спецификация");
+    return;
+  }
+  if(a==="svg"){ exportSvg(cur()); return; }
+  if(a==="png"){ exportPng(cur()); return; }
+  if(a==="print"){ printScheme(cur()); return; }
+  if(a==="export-all"){
+    downloadBlob(new Blob([JSON.stringify(db,null,2)],{type:"application/json"}),"schemy-"+today()+".json");
+    toast("Схемы выгружены","ok"); return;
+  }
+  if(a==="import-all"){ schFile.click(); return; }
+});
+
+/* ---------- Патч кнопки «Пакет документов» ---------- */
+document.addEventListener("click",function(e){
+  var b=e.target.closest?e.target.closest('[data-act="doc-pack-full"]'):null;
+  if(!b) return;
+  buildFullPack(b.getAttribute("data-id"));
+});
+function patchPackButtons(){
+  document.querySelectorAll('[data-act="doc-pack"]').forEach(function(b){
+    b.setAttribute("data-act","doc-pack-full");
+  });
+}
+
+/* ---------- Инъекция кнопок в проекты и сметы ---------- */
+function injectProjButtons(){
+  document.querySelectorAll("#view-projects .pcard").forEach(function(card){
+    if(card.querySelector('[data-act="open-schemes"]')) return;
+    var est=card.querySelector('[data-act="open-est"]');
+    if(!est) return;
+    var pid=est.getAttribute("data-id");
+    var cnt=(db[pid]||[]).length;
+    var btn=document.createElement("button");
+    btn.className="btn btn-ghost btn-sm";
+    btn.setAttribute("data-act","open-schemes");
+    btn.setAttribute("data-id",pid);
+    btn.title="Схемы щитов этого объекта";
+    btn.textContent="📐 Схемы"+(cnt?" · "+cnt:"");
+    est.parentNode.insertBefore(btn, est.nextSibling);
+  });
+}
+function injectEstBtn(){
+  var sel=document.getElementById("selEstProj");
+  if(!sel||document.getElementById("schFromEst")) return;
+  var cnt=(db[ui.projectId]||[]).length;
+  var btn=document.createElement("button");
+  btn.id="schFromEst";
+  btn.className="btn btn-ghost btn-sm";
+  btn.setAttribute("data-act","open-schemes");
+  btn.setAttribute("data-id",ui.projectId);
+  btn.title="Схемы щитов этого объекта";
+  btn.textContent="📐 Схемы"+(cnt?" · "+cnt:"");
+  sel.parentNode.insertBefore(btn, sel.nextSibling);
+}
+document.addEventListener("click", function(e){
+  var b=e.target.closest && e.target.closest('[data-act="open-schemes"]');
+  if(!b) return;
+  ui.projectId=b.getAttribute("data-id");
+  go("schemes");
+});
+
+/* ---------- Ввод в свойствах / названии ---------- */
+document.addEventListener("input",function(e){
+  var t=e.target;
+  if(t.id==="schName"){ var sc=cur(); if(sc){ sc.name=t.value; saveSoon(); } return; }
+  var pr=t.getAttribute&&t.getAttribute("data-prop");
+  if(!pr) return;
+  var s=cur(); if(!s||!SCE.sel) return;
+  if(SCE.sel.k==="node"){
+    var n=nodeById(s,SCE.sel.id); if(n){ n[pr]=t.value; saveSoon(); renderSvg(); }
+  } else {
+    var w=s.wires.filter(function(x){return x.id===SCE.sel.id;})[0];
+    if(w){ w[pr]=t.value; saveSoon(); renderSvg(); }
+  }
+});
+document.addEventListener("change",function(e){
+  if(e.target.id==="selSchProj"){ ui.projectId=e.target.value; SCE.id=null; renderSchemes(); }
+});
+
+/* ---------- Клавиатура ---------- */
+document.addEventListener("keydown",function(e){
+  if(ui.section!=="schemes"||!SCE.id) return;
+  if(e.key==="Escape"){
+    if(SCE.wire){ SCE.wire=null; SCE.tmp=null; renderSvg(); e.preventDefault(); }
+    return;
+  }
+  var t=e.target;
+  if(t&&(t.tagName==="INPUT"||t.tagName==="TEXTAREA"||t.tagName==="SELECT")) return;
+  if((e.key==="Delete"||e.key==="Backspace")&&SCE.sel){ e.preventDefault(); delSel(); }
+});
+
+/* ---------- Импорт/экспорт файла схем ---------- */
+var schFile=document.createElement("input");
+schFile.type="file"; schFile.accept="application/json"; schFile.style.display="none";
+document.body.appendChild(schFile);
+schFile.addEventListener("change",function(){
+  var f=schFile.files[0]; if(!f) return;
+  var rd=new FileReader();
+  rd.onload=function(){
+    try{
+      var o=JSON.parse(rd.result);
+      if(!o||typeof o!=="object"||Array.isArray(o)){ toast("Неверный формат","err"); return; }
+      askConfirm("Импортировать схемы? Текущие схемы будут заменены.",function(){
+        db=o; saveDb(); SCE.id=null; renderSchemes(); toast("Схемы импортированы","ok");
+      });
+    }catch(err){ toast("Ошибка файла","err"); }
+  };
+  rd.readAsText(f);
+  schFile.value="";
+});
+window.addEventListener("beforeunload",function(){ if(timer) saveDb(); });
+
+/* ---------- Инициализация: обёртки и меню ---------- */
+db=loadDb();
+(function bootUI(){
+  var main=document.querySelector("main");
+  if(main && !document.getElementById("view-schemes")){
+    var sec=document.createElement("section");
+    sec.id="view-schemes"; sec.className="view";
+    main.appendChild(sec);
+  }
+  var nav=document.getElementById("nav");
+  if(nav && !nav.querySelector('[data-sec="schemes"]')){
+    var btn=document.createElement("button");
+    btn.className="nav-btn"; btn.setAttribute("data-act","nav"); btn.setAttribute("data-sec","schemes");
+    btn.innerHTML='<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 7v10M12 7v10M16 7v10"/></svg>Схемы<span class="nav-badge" id="bSchemes">0</span>';
+    var priceBtn=nav.querySelector('[data-sec="price"]');
+    nav.insertBefore(btn, priceBtn||null);
+  }
+  var mn=document.getElementById("mnav");
+  if(mn && !mn.querySelector('[data-sec="schemes"]')){
+    var mb=document.createElement("button");
+    mb.setAttribute("data-act","nav"); mb.setAttribute("data-sec","schemes"); mb.title="Схемы";
+    mb.innerHTML='<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 7v10M12 7v10M16 7v10"/></svg><span>Схемы</span>';
+    mn.appendChild(mb);
+  }
+  if(typeof window.renderCurrent==="function"){
+    var origRC=window.renderCurrent;
+    window.renderCurrent=function(){
+      if(window.ui && ui.section==="schemes"){ renderSchemes(); return; }
+      origRC.apply(this, arguments);
+    };
+  }
+  if(typeof window.renderProjects==="function"){
+    var origRP=window.renderProjects;
+    window.renderProjects=function(){
+      origRP.apply(this, arguments);
+      injectProjButtons();
+      patchPackButtons();
+    };
+  }
+  if(typeof window.renderEstimates==="function"){
+    var origRE=window.renderEstimates;
+    window.renderEstimates=function(){
+      origRE.apply(this, arguments);
+      injectEstBtn();
+    };
+  }
+  updBadge();
+})();
+})();
+</script>
