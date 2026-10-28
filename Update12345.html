@@ -1,0 +1,109 @@
+Патч A. Замените блок @media print в CSS
+ 
+Найдите в <style> (ближе к концу):
+@media print{
+  body{background:#fff;padding:0}
+  .app,.mtop,.mhead,.mnav,#overlay,#toasts,#pdfSource,#menu{display:none!important}
+  #printSheet{display:block;background:#fff}
+  #printSheet .doc{box-shadow:none;width:100%;min-width:0;padding:8px 4px;border-radius:0}
+  #printSheet .doc-photos img{width:150px;height:100px}
+  @page{margin:13mm}
+}
+ 
+Замените на:
+@media print{
+  @page{size:A4;margin:0}
+  html,body{margin:0!important;padding:0!important;background:#fff}
+  .app,.mtop,.mhead,.mnav,#overlay,#toasts,#pdfSource,#menu{display:none!important}
+  #printSheet{display:block;background:#fff;padding:0!important;margin:0!important}
+  /* каждый .doc — отдельный лист */
+  #printSheet .doc{
+    box-shadow:none!important;width:100%!important;min-width:0!important;
+    padding:14mm 12mm!important;border-radius:0!important;margin:0!important;
+    box-sizing:border-box;
+    page-break-after:always;break-after:page;
+  }
+  #printSheet .doc:last-child{page-break-after:auto;break-after:auto}
+  /* обёртки пакета (модуль схем) не должны добавлять своих отступов */
+  #printSheet .doc-page{padding:0!important;margin:0!important}
+  #printSheet .doc-page .doc{padding:14mm 12mm!important}
+  /* межстраничные «прокладки» из doc-pack убираем */
+  #printSheet > div[style*="height:26px"]{display:none!important}
+  #printSheet .doc-photos img{width:150px;height:100px}
+}
+ 
+Что даёт:
+• @page { size:A4; margin:0 } + body{margin:0} → браузеру негде печатать колонтитулы → title сверху и URL снизу исчезают.
+• page-break-after: always на .doc → каждый документ (смета, дефектная ведомость, фотофиксация, каждая схема со спецификацией) начинается с нового листа.
+• :last-child { page-break-after: auto } → не появляется пустая страница в конце.
+• Правило для div[style*="height:26px"] убирает «прокладки», которые оригинальный doc-pack вставляет между документами (иначе они дают лишний отступ перед разрывом).
+• Отступы от края листа даёт padding: 14mm 12mm внутри каждого .doc. 
+ 
+Патч B. Уберите «прокладки» из doc-pack (если модуль схем не применялся)
+ 
+Найдите в <script> обработчик:
+if(act==="doc-pack"){
+  try{
+    var pk=projOf(id); if(!pk) return;
+    var html=buildEstDoc(pk);
+    if(state.defects.filter(function(d){return d.projectId===pk.id;}).length) html+='<div style="height:26px"></div>'+buildDefDoc(pk);
+    if(photosOf(pk).length){
+      html+='<div style="height:26px"></div><div class="doc">'+docHeader('Приложение: фотофиксация')+'<div class="doc-title">Фотофиксация</div>'+photosHtmlArr(pk.photos)+'</div>';
+    }
+    actModal(html,"paket-"+translit(pk.name)+".pdf");
+  }catch(err){ toast("Ошибка пакета","err"); }
+  return;
+}
+ 
+Замените на (убрал <div style="height:26px">, документы теперь разделяются самим разрывом страниц):
+if(act==="doc-pack"){
+  try{
+    var pk=projOf(id); if(!pk) return;
+    var html=buildEstDoc(pk);
+    if(state.defects.filter(function(d){return d.projectId===pk.id;}).length) html+=buildDefDoc(pk);
+    if(photosOf(pk).length){
+      html+='<div class="doc">'+docHeader('Приложение: фотофиксация')+'<div class="doc-title">Фотофиксация</div>'+photosHtmlArr(pk.photos)+'</div>';
+    }
+    actModal(html,"paket-"+translit(pk.name)+".pdf");
+  }catch(err){ toast("Ошибка пакета","err"); }
+  return;
+}
+‌Если вы уже применяли модуль схем, где кнопка заменена на doc-pack-full и работает buildFullPack — этот патч можно пропустить, там doc-pack не используется. CSS из патча A сработает и для .doc-page, и для голых .doc. 
+ 
+Патч C. Замените printHtml, чтобы title гарантированно не попадал в печать
+ 
+Найдите в <script>:
+function printHtml(html){
+  document.getElementById("printSheet").innerHTML=html;
+  try{ window.print(); }catch(e){ openPrintWindow(html); }
+}
+ 
+Замените на:
+var _origPrintTitle = document.title;
+function printHtml(html){
+  var sheet=document.getElementById("printSheet");
+  if(!sheet) return;
+  var oldTitle=document.title;
+  document.title="\u00A0";                 /* пустой заголовок на время печати */
+  sheet.innerHTML=html;
+  setTimeout(function(){
+    try{ window.print(); }
+    catch(e){ openPrintWindow(html); }
+    setTimeout(function(){ document.title=oldTitle||_origPrintTitle; },300);
+  },120);
+}
+ 
+Это страховка для браузеров, которые игнорируют @page{margin:0} и всё равно рисуют заголовок сверху. 
+ 
+Патч D (fallback). openPrintWindow — тоже без title/URL
+ 
+Найдите в <script>:
+var PRINT_CSS="body{margin:0;padding:24px;font-family:'Golos Text',Arial,sans-serif;color:#14181f;font-size:12.5px;line-height:1.5;background:#fff}"
+ 
+Замените на:
+var PRINT_CSS="@page{size:A4;margin:0}"
++"html,body{margin:0;padding:0;font-family:'Golos Text',Arial,sans-serif;color:#14181f;font-size:12.5px;line-height:1.5;background:#fff}"
++".doc{padding:14mm 12mm;box-sizing:border-box;page-break-after:always;break-after:page}"
++".doc:last-child{page-break-after:auto;break-after:auto}"
+ 
+(остальные строки PRINT_CSS ниже, начинающиеся с +".doc{width:100%... — оставьте как есть, они дополнят стили документа). 
