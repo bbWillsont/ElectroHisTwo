@@ -1,0 +1,83 @@
+Шаг 1. Замените HTML вкладки УЗО в calcModal
+ 
+Найдите в функции calcModal блок // Вкладка 2: УЗО (там где id="tab-rcd") и замените его целиком на этот:
+// Вкладка 2: УЗО
+    +'<div id="tab-rcd" style="display:none">'
+    +'<div class="fgrid">'
+    +'<div><label>Длина линий, м</label><input class="inp" id="rcdL" type="number" value="40" min="1"></div>'
+    +'<div><label>Кол-во приборов, шт</label><input class="inp" id="rcdQty" type="number" value="10" min="1"></div>'
+    +'<div><label>Тип помещения</label><select class="inp" id="rcdZone">'
+      +'<option value="dry">Сухое (жилая, офис)</option>'
+      +'<option value="wet">Влажное (ванная, кухня)</option>'
+      +'<option value="out">Улица / Гараж</option>'
+    +'</select></div>'
+    +'<div><label>Назначение</label><select class="inp" id="rcdPurpose">'
+      +'<option value="people">Защита людей (30мА)</option>'
+      +'<option value="fire">Противопожарное (100мА)</option>'
+    +'</select></div>'
+    +'</div>'
+    +'<button class="btn btn-amber" style="width:100%;margin-top:16px;justify-content:center" onclick="doCalcRCD()">Рассчитать УЗО</button>'
+    +'<div class="card" id="rcdRes" style="display:none;margin-top:16px;padding:16px"></div>'
+    +'</div>'
+ 
+Шаг 2. Замените функцию doCalcRCD
+ 
+Найдите вашу функцию window.doCalcRCD = function(){ ... } и замените её на эту умную версию:
+window.doCalcRCD = function(){
+  var L = parseFloat(document.getElementById("rcdL").value) || 0;
+  var qty = parseInt(document.getElementById("rcdQty").value) || 0;
+  var zone = document.getElementById("rcdZone").value;
+  var purpose = document.getElementById("rcdPurpose").value;
+  
+  if (L <= 0) { toast("Введите длину линий", "err"); return; }
+
+  // 1. Утечка кабеля (в среднем 0.01 мА на 1 метр)
+  var cableLeak = L * 0.01;
+  // 2. Утечка приборов (по DIN VDE закладываем 0.5 мА на 1 прибор)
+  var deviceLeak = qty * 0.5;
+  var totalLeak = cableLeak + deviceLeak;
+
+  // 3. Минимально допустимый номинал УЗО (в 3 раза больше естественной утечки)
+  var minRcd = totalLeak * 3;
+
+  var rcdNominal = 30; 
+  var typeRcd = "AC (переменный ток)";
+  var warning = "";
+  var isFire = purpose === "fire";
+
+  // 4. Логика выбора
+  if (isFire) {
+    rcdNominal = minRcd > 100 ? 300 : 100;
+    typeRcd = "Селективное (тип S)";
+    if (zone === "wet" || zone === "out") warning = "Противопожарное УЗО ставится на вводе. Для защиты людей в мокрых зонах нужны отдельные УЗО 10-30мА.";
+  } else {
+    var base = (zone === "wet" || zone === "out") ? 10 : 30; // В ванной/на улице лучше 10мА
+
+    if (minRcd <= 10) {
+      rcdNominal = base;
+    } else if (minRcd <= 30) {
+      rcdNominal = 30;
+      if (base === 10) warning = "Естественная утечка велика для 10 мА. Рекомендуется УЗО 30 мА.";
+    } else {
+      rcdNominal = 30; 
+      warning = "Суммарная утечка слишком велика для одного УЗО 30мА. Оно будет ложно выбивать. Разделите линии на 2-3 группы с отдельными УЗО.";
+    }
+  }
+
+  // 5. Тип расцепителя (А или AC)
+  if (qty > 5) {
+    typeRcd = "A (рекомендуется, из-за импульсных БП)";
+  }
+
+  var resBox = document.getElementById("rcdRes");
+  resBox.style.display = "block";
+  resBox.innerHTML = 
+    '<div style="font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;margin-bottom:8px">Результаты расчета</div>'
+    + '<div class="calc-row"><span>Утечка кабеля (' + L + ' м)</span><span>' + fnum(cableLeak) + ' мА</span></div>'
+    + '<div class="calc-row"><span>Утечка приборов (' + qty + ' шт)</span><span>' + fnum(deviceLeak) + ' мА</span></div>'
+    + '<div class="calc-row" style="color:var(--dim)"><span>Общая фоновая утечка</span><span>' + fnum(totalLeak) + ' мА</span></div>'
+    + '<div class="calc-row"><span>Рекомендуемое УЗО</span><span>' + rcdNominal + ' мА</span></div>'
+    + '<div class="calc-row" style="font-size:12px;color:var(--mut)"><span>Тип расцепителя</span><span>' + typeRcd + '</span></div>'
+    + (warning ? '<div class="calc-alert" style="display:block;' + (isFire ? 'color:var(--yelT);border-color:var(--yel);background:rgba(246,196,69,.1)' : '') + '">⚠️ <b>Внимание:</b> ' + warning + '</div>' : '');
+};
+ 
