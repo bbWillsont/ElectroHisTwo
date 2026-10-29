@@ -1,0 +1,150 @@
+1. Добавьте стили (в самый конец <style>)
+ 
+Найдите перед </style> пустую строку и вставьте:
+/* === KANBAN === */
+.kanban-wrap{display:flex;gap:14px;overflow-x:auto;padding-bottom:14px;align-items:flex-start;min-height:400px}
+.kanban-col{flex:1;min-width:260px;max-width:320px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.kanban-col.drag-over{border-color:var(--yel);background:var(--ydim)}
+.kanban-h{font-weight:700;font-size:13px;color:var(--mut);display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.kanban-h span{font-family:var(--mono);background:var(--field);padding:2px 8px;border-radius:10px;font-size:11px}
+.kanban-card{background:var(--field);border:1px solid var(--line);border-radius:10px;padding:12px;cursor:grab;transition:transform .15s}
+.kanban-card:active{cursor:grabbing}
+.kanban-card:hover{border-color:var(--line2);transform:translateY(-2px)}
+.kanban-card .t{font-weight:600;font-size:13px;margin-bottom:4px;line-height:1.3}
+.kanban-card .m{font-size:11.5px;color:var(--dim)}
+.kanban-card .s{margin-top:8px;font-family:var(--mono);font-weight:600;font-size:12px;color:var(--yelT)}
+ 
+2. Добавьте новые статусы в JS
+ 
+Найдите строку:
+var STAT_L={active:"Активен",paused:"Пауза",done:"Завершён",archive:"Архив"};
+ 
+Замените её на:
+var STAT_L={draft:"Черновик",measure:"Замер",estimate:"Смета",install:"Монтаж",handover:"Сдача",warranty:"Гарантия",active:"Монтаж",paused:"Пауза",done:"Завершён",archive:"Архив"};
+ 
+(Я приравнял старый статус active к Монтажу, чтобы ваши текущие проекты не пропали с доски).
+ 
+3. Замените функцию renderProjects
+ 
+Найдите функцию function renderProjects(){ и замените её целиком на этот код:
+function renderProjects(){
+  var el=document.getElementById("view-projects");
+  if(!ui.projView) ui.projView="list";
+
+  // Шапка с переключателем
+  var tabs='<div class="toolbar">'
+    +'<div class="tabs">'
+    +'<button class="'+(ui.projTab==="objects"?"active":"")+'" data-act="proj-tab" data-mode="objects">Объекты</button>'
+    +'<button class="'+(ui.projTab==="clients"?"active":"")+'" data-act="proj-tab" data-mode="clients">Клиенты</button>'
+    +'</div>'
+    +'<div style="display:flex;gap:6px;background:var(--field);border:1px solid var(--line);border-radius:12px;padding:3px;margin-left:10px">'
+    +'<button class="btn '+(ui.projView==="list"?"btn-amber":"btn-ghost")+' btn-sm" data-act="proj-view" data-view="list" style="padding:5px 12px">Список</button>'
+    +'<button class="btn '+(ui.projView==="kanban"?"btn-amber":"btn-ghost")+' btn-sm" data-act="proj-view" data-view="kanban" style="padding:5px 12px">Kanban</button>'
+    +'</div>'
+    +'<div style="flex:1"></div>'
+    + (ui.projTab==="objects" ? '<button class="btn btn-amber btn-sm" data-act="new-project">+ Создать новый проект</button>' : '<button class="btn btn-amber btn-sm" data-act="client-add">+ Добавить клиента</button>')
+    +'</div>';
+
+  if(ui.projTab==="clients"){ el.innerHTML=tabs+clientsHtml(); return; }
+
+  if(!state.projects.length){
+    el.innerHTML=tabs+'<div class="empty"><b>Список пуст</b>Добавьте первый объект.</div>';
+    return;
+  }
+
+  // Отрисовка Kanban
+  if(ui.projView==="kanban"){
+    var cols=["draft","measure","estimate","install","handover","warranty"];
+    var kbHtml='<div class="kanban-wrap">';
+    cols.forEach(function(c){
+      var ps=state.projects.filter(function(p){ 
+        return p.status===c || (p.status==="active" && c==="install"); 
+      });
+      kbHtml+='<div class="kanban-col" data-status="'+c+'">'
+        +'<div class="kanban-h">'+STAT_L[c]+'<span>'+ps.length+'</span></div>';
+      ps.forEach(function(p){
+        kbHtml+='<div class="kanban-card" draggable="true" data-id="'+p.id+'">'
+          +'<div class="t">'+esc(p.name)+'</div>'
+          +'<div class="m">👤 '+esc(p.client||"—")+'</div>'
+          +'<div class="s">'+fmt(projTotal(p))+'</div>'
+          +'</div>';
+      });
+      kbHtml+='</div>';
+    });
+    el.innerHTML=tabs+kbHtml;
+
+    // Логика перетаскивания (Drag & Drop)
+    var cards=document.querySelectorAll(".kanban-card");
+    var colsEl=document.querySelectorAll(".kanban-col");
+    var dragged=null;
+    cards.forEach(function(c){
+      c.addEventListener("dragstart",function(e){ dragged=c; setTimeout(function(){c.style.opacity=".5"},0); });
+      c.addEventListener("dragend",function(){ dragged=null; c.style.opacity="1"; });
+    });
+    colsEl.forEach(function(col){
+      col.addEventListener("dragover",function(e){ e.preventDefault(); col.classList.add("drag-over"); });
+      col.addEventListener("dragleave",function(){ col.classList.remove("drag-over"); });
+      col.addEventListener("drop",function(e){
+        e.preventDefault(); col.classList.remove("drag-over");
+        if(!dragged) return;
+        var pid=dragged.getAttribute("data-id");
+        var newStatus=col.getAttribute("data-status");
+        var p=projOf(pid);
+        if(p && p.status!==newStatus){
+          p.status=newStatus; 
+          save(); 
+          toast("Проект перенесен в «"+STAT_L[newStatus]+"»","ok");
+          renderProjects();
+        }
+      });
+    });
+    return;
+  }
+
+  // Отрисовка Списка (ваш старый код карточек)
+  var cards=state.projects.slice().sort(function(a,b){return (b.ts||0)-(a.ts||0);}).map(function(p,i){
+    var t=estTotals(estOf(p.id));
+    var dAll=state.defects.filter(function(d){return d.projectId===p.id;});
+    var dOpen=dAll.filter(function(d){return d.status!=="fixed";}).length;
+    var ps=payState(p), pd=paidOf(p.id), db=debtOf(p), ex=expSum(p.id);
+    var phCount=photosOf(p).length;
+    var payChip=ps==="paid"?'<span class="chip chip-green">Оплачено</span>':ps==="part"?'<span class="chip chip-amber">Частично</span>':'<span class="chip chip-muted">Ждёт оплаты</span>';
+    
+    return '<div class="pcard" style="animation-delay:'+(.05*i)+'s">'
+      +'<div class="stripe" style="background:'+TYPE_CL[p.type]+'"></div>'
+      +'<div class="pcard-body">'
+      +'<h4>'+esc(p.name)+'</h4>'
+      +'<div class="meta"><span>👤 '+esc(p.client||"—")+(p.phone?" · "+esc(p.phone):"")+'</span><span>📍 '+esc(p.address||"адрес не указан")+'</span><span>🗓 '+fmtD(p.dateStart)+' → '+fmtD(p.dateEnd)+'</span></div>'
+      +'<div class="row2"><span class="chip chip-muted">'+ (STAT_L[p.status]||STAT_L.active) +'</span><span class="chip chip-muted">'+TYPE_L[p.type]+'</span>'+payChip+'</div>'
+      +'<div class="nums"><div><div class="k">Смета</div><div class="v amber">'+fmt(t.it)+'</div></div><div><div class="k">Работы</div><div class="v">'+fmt(t.w)+'</div></div><div><div class="k">Дефекты</div><div class="v" style="color:'+(dOpen?"var(--red)":"var(--green)")+'">'+dOpen+' / '+dAll.length+'</div></div></div>'
+      +'<div class="nums row3"><div><div class="k">Оплачено</div><div class="v" style="color:var(--green)">'+fmt(pd)+'</div></div><div><div class="k">Долг</div><div class="v" style="color:'+(db>0.5?"var(--red)":"var(--green)")+'">'+fmt(db)+'</div></div><div><div class="k">Доп. расходы</div><div class="v" style="color:'+(ex>0?"var(--red)":"var(--dim)")+'">'+fmt(ex)+'</div></div></div>'
+      +(p.notes?'<div style="font-size:12px;color:var(--dim);margin:-4px 0 12px">'+esc(p.notes)+'</div>':"")
+      +'<div class="acts">'
+      +'<button class="btn btn-amber btn-sm" data-act="open-est" data-id="'+p.id+'">Смета</button>'
+      +'<button class="btn btn-bordo btn-sm" data-act="open-def" data-id="'+p.id+'">Ведомость</button>'
+      +'<button class="btn btn-ghost btn-sm" data-act="doc-pack" data-id="'+p.id+'" title="Пакет">📦</button>'
+      +'<button class="btn btn-ghost btn-sm" data-act="proj-toggle" data-id="'+p.id+'">⋯</button>'
+      +'</div>'
+      +'<div class="acts-more" id="pm-'+p.id+'">'
+      +'<button class="btn btn-cyan btn-sm" data-act="pay-open" data-id="'+p.id+'">💳 Оплаты</button>'
+      +'<button class="btn btn-ghost btn-sm" data-act="exp-open" data-id="'+p.id+'">💰 Расходы</button>'
+      +'<button class="btn btn-ghost btn-sm" data-act="photos-proj" data-id="'+p.id+'">📷 Фото'+(phCount?' '+phCount:'')+'</button>'
+      +'<button class="btn btn-ghost btn-sm" data-act="work-act" data-id="'+p.id+'">🧾 Акт</button>'
+      +'<button class="btn btn-ghost btn-sm" data-act="invoice" data-id="'+p.id+'">🧮 Счёт</button>'
+      +'<button class="btn btn-ghost btn-sm" data-act="edit-project" data-id="'+p.id+'">✎ Изменить</button>'
+      +'<button class="del-txt" data-act="del-project" data-id="'+p.id+'">Удалить</button>'
+      +'</div>'
+      +'</div></div>';
+  }).join("");
+  
+  el.innerHTML=tabs+'<div class="proj-grid">'+cards+'</div>';
+}
+ 
+4. Добавьте обработчик клика (чтобы переключатель работал)
+ 
+Найдите в документе (ближе к концу скрипта) большой блок document.addEventListener("click",function(e){ и внутри него, где обрабатываются data-act, добавьте одну строчку:
+if(act==="proj-view"){ ui.projView=b.getAttribute("data-view"); renderProjects(); return; }
+ 
+(Вставьте ее рядом с if(act==="proj-tab"){...}). 
+ 
+Всё! Никаких новых зависимостей, сложных функций и переписывания всей логики. При нажатии на «Kanban» появится доска с 6 колонками, карточки можно перетаскивать мышкой, статус автоматически обновится, и проект сохранится.
