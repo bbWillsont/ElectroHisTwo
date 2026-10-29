@@ -1,0 +1,108 @@
+Патч 1. Замените блок html[data-theme="light"]{…} в <style>
+ 
+Найдите:
+html[data-theme="light"]{
+  --bg:#eef1f5; --shell:#ffffff; --side:#fbfcfe; --card:#ffffff; --card2:#eef1f5; --field:#f7f8fa;
+  --line:#e3e7ee; --line2:#c9d1dc;
+  --ink:#1a2438; --mut:#5b6472; --dim:#8a93a3;
+  --yelT:#8a6a00; --ydim:rgba(246,196,69,.2);
+  --green:#1d8a54; --red:#d43d2a; --blue:#2559d3;
+  --bordo:#8e2f3c; --bordo-d:#6d2430; --del:#a03340;
+  --mtop:rgba(255,255,255,.94); --mnavbg:#ffffff; --docwrapbg:#e7ebf1;
+  --sh:0 14px 34px rgba(30,40,60,.12);
+}
+ 
+Замените на:
+html[data-theme="light"]{
+  /* фоны: белый + серо-зелёный */
+  --bg:#eef2ef; --shell:#ffffff; --side:#f7faf8; --card:#ffffff;
+  --card2:#edf2ee; --field:#f4f7f5;
+  --line:#dce4df; --line2:#c3cec7;
+
+  /* текст: тёмный зелёно-серый */
+  --ink:#0f1e16; --mut:#495a51; --dim:#7a8a81;
+
+  /* акцент: зелёный вместо жёлтого */
+  --yel:#2d7d4f; --yel2:#4a9b6c;
+  --yelT:#1a5c36; --ydim:rgba(45,125,79,.10);
+
+  /* семантика */
+  --green:#1a6b3d; --red:#c43a2f; --blue:#2d62b8;
+  --bordo:#8e2f3c; --bordo-d:#6d2430; --del:#a03340;
+
+  /* хром */
+  --mtop:rgba(255,255,255,.96); --mnavbg:#ffffff;
+  --docwrapbg:#e6ebe8;
+  --sh:0 12px 30px rgba(15,40,25,.10);
+}
+ 
+ 
+Патч 2. Добавьте блок переопределений сразу после блока выше
+ 
+Он перекрашивает то, что было захардкожено под жёлтый, и делает светлую тему консистентной (белый текст на зелёных кнопках и т.п.).
+/* === Светлая тема: доработка контраста и акцентов === */
+html[data-theme="light"] ::selection{background:rgba(45,125,79,.22);color:var(--ink)}
+
+html[data-theme="light"] .btn-amber{
+  color:#ffffff;
+  box-shadow:0 6px 18px rgba(45,125,79,.22);
+}
+html[data-theme="light"] .btn-amber:hover{filter:brightness(1.08)}
+
+html[data-theme="light"] .brand-ic{
+  box-shadow:0 6px 16px rgba(45,125,79,.22);
+}
+html[data-theme="light"] .brand-ic svg{fill:#ffffff}
+
+html[data-theme="light"] .tabs button.active{color:#ffffff}
+html[data-theme="light"] .task input:checked+.box{color:#ffffff}
+
+html[data-theme="light"] .inp:focus{
+  border-color:var(--yel);
+  box-shadow:0 0 0 3px rgba(45,125,79,.16);
+}
+
+html[data-theme="light"] .plan{
+  background:rgba(45,125,79,.06);
+  border:1px solid rgba(45,125,79,.20);
+}
+
+html[data-theme="light"] .fin-tot .pf{border:1px solid rgba(45,125,79,.26)}
+html[data-theme="light"] .nav-btn.active .nav-badge{background:rgba(45,125,79,.14)}
+html[data-theme="light"] .switch input:checked+.track{background:var(--yel)}
+html[data-theme="light"] .switch input:checked+.track::after{box-shadow:0 2px 6px rgba(20,40,30,.22)}
+
+/* нейтральный toast не должен быть зелёным — пусть будет серым */
+html[data-theme="light"] .toast{border-left-color:var(--line2)}
+html[data-theme="light"] .toast.ok{border-left-color:var(--green)}
+html[data-theme="light"] .toast.err{border-left-color:var(--red)}
+
+/* savechip из предыдущего патча — согласуем цвета */
+html[data-theme="light"] .savechip.saved{color:var(--green);border-color:rgba(26,107,61,.30)}
+html[data-theme="light"] .savechip.saving{color:var(--yelT);border-color:rgba(45,125,79,.35)}
+html[data-theme="light"] .savechip.dirty{color:var(--red);border-color:rgba(196,58,47,.35)}
+ 
+ 
+Патч 3. Поменяйте lineSvg в <script> — график финансов был захардкожен под #f6c445
+ 
+Найдите:
+function lineSvg(vals){
+  var w=560,h=130,pad=8,max=Math.max.apply(null,vals.concat([1]));
+  var pts=vals.map(function(v,i){ return [pad+i*(w-2*pad)/(vals.length-1), h-pad-(v/max)*(h-2*pad)]; });
+  var line=pts.map(function(p){ return p[0].toFixed(1)+","+p[1].toFixed(1); }).join(" ");
+  var area="M"+pts[0][0]+","+(h-pad)+" L"+line.replace(/ /g," L")+" L"+pts[pts.length-1][0]+","+(h-pad)+" Z";
+  return '<svg viewBox="0 0 '+w+' '+h+'" style="width:100%;height:130px;display:block" preserveAspectRatio="none">'
+    +'<defs><linearGradient id="lg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6c445" stop-opacity=".22"/><stop offset="1" stop-color="#f6c445" stop-opacity="0"/></linearGradient></defs>'
+    +'<path d="'+area+'" fill="url(#lg)"/><polyline points="'+line+'" fill="none" stroke="#f6c445" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+}
+ 
+Замените на (использует --yel → автоматически зелёный в светлой, жёлтый в тёмной):
+function lineSvg(vals){
+  var w=560,h=130,pad=8,max=Math.max.apply(null,vals.concat([1]));
+  var pts=vals.map(function(v,i){ return [pad+i*(w-2*pad)/(vals.length-1), h-pad-(v/max)*(h-2*pad)]; });
+  var line=pts.map(function(p){ return p[0].toFixed(1)+","+p[1].toFixed(1); }).join(" ");
+  var area="M"+pts[0][0]+","+(h-pad)+" L"+line.replace(/ /g," L")+" L"+pts[pts.length-1][0]+","+(h-pad)+" Z";
+  return '<svg viewBox="0 0 '+w+' '+h+'" style="width:100%;height:130px;display:block" preserveAspectRatio="none">'
+    +'<defs><linearGradient id="lg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--yel);stop-opacity:.22"/><stop offset="1" style="stop-color:var(--yel);stop-opacity:0"/></linearGradient></defs>'
+    +'<path d="'+area+'" fill="url(#lg)"/><polyline points="'+line+'" fill="none" style="stroke:var(--yel)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+}
