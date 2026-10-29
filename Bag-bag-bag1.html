@@ -1,0 +1,52 @@
+1. Фикс отступов (CSS)
+ 
+Найдите ваши стили для аккордеона (/* === АККОРДЕОН В КАРТОЧКЕ ПРОЕКТА === */) и замените их на эти:
+/* === АККОРДЕОН В КАРТОЧКЕ ПРОЕКТА === */
+.proj-preview {
+  display: none;
+  margin-top: 16px;
+  padding-top: 16px;
+  padding-bottom: 8px;
+  border-top: 1px dashed var(--line);
+  animation: sectionFade .2s ease both;
+}
+.proj-preview.open { display: block; }
+.preview-tbl { 
+  width: 100%; 
+  border-collapse: collapse; 
+  font-size: 11.5px; 
+  margin-bottom: 14px; /* Отступ от таблицы до кнопки */
+}
+.preview-tbl td { 
+  padding: 8px 4px; /* Добавили воздуха вокруг текста */
+  border-bottom: 1px solid var(--line); 
+  color: var(--mut); 
+}
+.preview-tbl td:nth-child(2) { 
+  text-align: center; 
+  color: var(--dim); 
+}
+.preview-tbl td:last-child { 
+  text-align: right; 
+  font-family: var(--mono); 
+  font-weight: 600; 
+  color: var(--ink); 
+}
+ 
+2. Фикс «Активных проектов» (JS)
+ 
+Вам нужно найти функцию renderDash() (она рисует главный экран). Внутри неё есть две строчки, которые фильтруют проекты. Замените их.
+ 
+Строка 1. Найдите:
+var act=ps.filter(function(p){return p.status==="active";});
+ 
+Замените на:
+var activeSt = ["draft","measure","estimate","install","handover","active"];
+  var act=ps.filter(function(p){ return activeSt.indexOf(p.status) !== -1; });
+ 
+Строка 2. Найдите (чуть ниже):
+var actList=ps.filter(function(p){return p.status==="active";}).slice(0,4);
+ 
+Замените на:
+var actList=ps.filter(function(p){ return activeSt.indexOf(p.status) !== -1; }).slice(0,4);
+ 
