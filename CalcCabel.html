@@ -1,0 +1,87 @@
+Шаг 1. Добавьте стили (CSS)
+ 
+Найдите конец вашего блока <style> (перед </style>) и добавьте этот код:
+/* === КАЛЬКУЛЯТОР КАБЕЛЯ === */
+.calc-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed var(--line); font-size: 13.5px; }
+.calc-row:last-child { border-bottom: none; font-weight: 700; font-size: 15px; color: var(--yelT); margin-top: 4px; padding-top: 12px; border-top: 1px solid var(--line2); }
+.calc-row span:last-child { font-family: var(--mono); font-weight: 600; }
+.calc-alert { background: rgba(255,107,94,.1); border-left: 3px solid var(--red); color: var(--red); padding: 10px 14px; border-radius: 8px; font-size: 12px; margin-top: 14px; line-height: 1.4; display: none; }
+ 
+Шаг 2. Добавьте кнопку в шапку дашборда
+ 
+В функции renderDash найдите строку с кнопкой поиска:
++'<button class="icbtn" data-act="search-open" title="Поиск (Ctrl+K)"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-5-5"/></svg></button>'
+ 
+И прямо перед ней добавьте кнопку калькулятора:
++'<button class="icbtn" data-act="calc-open" title="Калькулятор кабеля"><svg viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 10h8M8 14h4M16 14h.01M8 18h4M16 18h.01"/></svg></button>'
+ 
+Шаг 3. Добавьте кнопку в мобильную шапку (HTML)
+ 
+В самом начале файла найдите <header class="mhead">. Внутри блока <div class="icrow"> найдите кнопку поиска и добавьте калькулятор перед ней:
+<button class="icbtn" data-act="calc-open" title="Калькулятор кабеля"><svg viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 10h8M8 14h4M16 14h.01M8 18h4M16 18h.01"/></svg></button>
+ 
+Шаг 4. Добавьте логику калькулятора (JS)
+ 
+Найдите в самом низу вашего <script> (перед boot(); или после функции undo()) пустое место и вставьте этот блок:
+// === КАЛЬКУЛЯТОР КАБЕЛЯ И АВТОМАТА ===
+function calcModal(){
+  openModal('<h3>🧮 Калькулятор кабеля и автомата</h3>'
+    +'<div class="fgrid">'
+    +'<div><label>Нагрузка, кВт</label><input class="inp" id="cP" type="number" value="5" min="0.1" step="0.1"></div>'
+    +'<div><label>Сеть</label><select class="inp" id="cPh"><option value="1">Однофазная (220В)</option><option value="3">Трёхфазная (380В)</option></select></div>'
+    +'<div><label>Длина линии, м</label><input class="inp" id="cL" type="number" value="30" min="1"></div>'
+    +'<div><label>Материал жилы</label><select class="inp" id="cMat"><option value="cu">Медь</option><option value="al">Алюминий</option></select></div>'
+    +'</div>'
+    +'<button class="btn btn-amber" style="width:100%;margin-top:16px;justify-content:center" onclick="doCalc()">Рассчитать</button>'
+    +'<div class="card" id="cRes" style="display:none;margin-top:16px;padding:16px"></div>'
+    +'<div class="modal-foot"><button class="btn btn-ghost" data-act="close">Закрыть</button></div>');
+}
+
+window.doCalc = function(){
+  var P = parseFloat(document.getElementById("cP").value) || 0;
+  var U = parseInt(document.getElementById("cPh").value) === 3 ? 380 : 220;
+  var L = parseFloat(document.getElementById("cL").value) || 0;
+  var mat = document.getElementById("cMat").value;
+  var is3 = U === 380;
+
+  if (P <= 0 || L <= 0) { toast("Введите положительные значения", "err"); return; }
+
+  // 1. Расчет тока (с учетом cosF = 0.95 для бытовых сетей)
+  var I = P / (is3 ? (1.73 * 0.38 * 0.95) : (0.22 * 0.95));
+  
+  // 2. Выбор автомата (ближайший больший из стандартного ряда)
+  var breakers = [6, 10, 16, 20, 25, 32, 40, 50, 63, 80, 100];
+  var br = breakers.find(function(b){ return b >= I; }) || 100;
+  
+  // 3. Сечение по ПУЭ (Табл. 1.3.4-1.3.5 для прокладки в стене/воздухе)
+  var sections = {
+    cu: { 16: 1.5, 25: 2.5, 32: 4, 40: 6, 50: 10, 63: 16, 80: 25, 100: 35 },
+    al: { 16: 2.5, 25: 4, 32: 6, 40: 10, 50: 16, 63: 25, 80: 35, 100: 50 }
+  };
+  var sec = sections[mat][br] || (mat === "cu" ? 35 : 50);
+  
+  // 4. Падение напряжения dU%
+  var rho = mat === "cu" ? 0.0175 : 0.028;
+  var dU_volt = is3 ? (1.73 * L * I * rho) / sec : (2 * L * I * rho) / sec;
+  var dUPct = (dU_volt / U) * 100;
+  
+  var resBox = document.getElementById("cRes");
+  resBox.style.display = "block";
+  resBox.innerHTML = 
+    '<div style="font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;margin-bottom:8px">Результаты расчета</div>'
+    + '<div class="calc-row"><span>Расчетный ток</span><span>' + fnum(I) + ' А</span></div>'
+    + '<div class="calc-row"><span>Автомат (С-характеристика)</span><span>' + br + ' А</span></div>'
+    + '<div class="calc-row"><span>Сечение (' + (mat === "cu" ? "медь" : "алюминий") + ')</span><span>' + sec + ' мм²</span></div>'
+    + '<div class="calc-row" style="color:' + (dUPct > 5 ? 'var(--red)' : 'var(--green)') + '"><span>Падение напряжения</span><span>' + fnum(dUPct) + ' %</span></div>'
+    + '<div class="calc-alert" style="display:' + (dUPct > 5 ? 'block' : 'none') + '">⚠️ <b>Внимание:</b> падение напряжения превышает 5% (норма ПУЭ). Увеличьте сечение кабеля или уменьшите длину линии.</div>';
+};
+ 
+Шаг 5. Научите приложение открывать эту модалку
+ 
+Найдите ваш главный обработчик кликов document.addEventListener("click", function(e){ (там же, где мы добавляли proj-view).
+ 
+Найдите строчку:
+if(act==="search-open"){ openSearchModal(); return; }
+ 
+И прямо перед ней добавьте:
+if(act==="calc-open"){ calcModal(); return; }
