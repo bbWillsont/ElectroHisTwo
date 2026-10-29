@@ -1,0 +1,106 @@
+Патч 1. Замените блок html[data-theme="light"] в <style>
+ 
+Найдите старый блок html[data-theme="light"]{...} и замените его на:
+html[data-theme="light"]{
+  /* Основные фоны: очень светлый серо-зеленый */
+  --bg:#f4f6f5; --shell:#ffffff; 
+  /* Сайдбар делаем ТЁМНЫМ даже в светлой теме */
+  --side:#132a22; 
+  --card:#ffffff; --card2:#f4f6f5; --field:#f9fafb;
+  --line:#e5e7eb; --line2:#d1d5db;
+  
+  /* Текст */
+  --ink:#111827; --mut:#6b7280; --dim:#9ca3af;
+  
+  /* Акцент: яркий зеленый */
+  --yel:#22c55e; --yel2:#16a34a; --yelT:#15803d; --ydim:rgba(34,197,94,.12);
+  --green:#22c55e; --red:#ef4444; --blue:#3b82f6;
+  
+  /* Прочее */
+  --bordo:#8e2f3c; --bordo-d:#6d2430; --del:#a03340;
+  --mtop:rgba(255,255,255,.96); --mnavbg:#ffffff; --docwrapbg:#e5e7eb;
+  --sh:0 4px 20px rgba(0,0,0,.04);
+}
+ 
+Патч 2. Добавьте блок переопределений сразу после блока выше
+ 
+Этот код адаптирует элементы под тёмный сайдбар и делает пастельные карточки статистики.
+/* === Светлая тема (как на макете) === */
+
+/* 1. Тёмный сайдбар */
+html[data-theme="light"] .side{border-right:none}
+html[data-theme="light"] .brand b{color:#ffffff}
+html[data-theme="light"] .nav-btn{color:#a3b8ae}
+html[data-theme="light"] .nav-btn svg{stroke:#a3b8ae}
+html[data-theme="light"] .nav-btn:hover{background:rgba(255,255,255,.06); color:#ffffff}
+html[data-theme="light"] .nav-btn:hover svg{stroke:#ffffff}
+html[data-theme="light"] .nav-btn.active{background:#1a382d; color:#ffffff}
+html[data-theme="light"] .nav-btn.active svg{stroke:#ffffff}
+html[data-theme="light"] .nav-badge{background:rgba(255,255,255,.1); color:#ffffff}
+html[data-theme="light"] .nav-btn.active .nav-badge{background:#22c55e; color:#132a22}
+
+/* Блок хранилища в сайдбаре */
+html[data-theme="light"] .plan{background:#1a382d; border-color:#2b4d3f}
+html[data-theme="light"] .plan .t,html[data-theme="light"] .plan .s,html[data-theme="light"] .plan .pct{color:#a3b8ae}
+html[data-theme="light"] .plan .bar{background:#2b4d3f}
+html[data-theme="light"] .plan .bar i{background:#22c55e}
+
+/* Профиль в сайдбаре */
+html[data-theme="light"] .user .nm{color:#ffffff}
+html[data-theme="light"] .user .rl{color:#a3b8ae}
+html[data-theme="light"] .user .ch{color:#a3b8ae}
+html[data-theme="light"] .user:hover{background:rgba(255,255,255,.06)}
+html[data-theme="light"] .user .ava{background:#1a382d; color:#ffffff; border-color:#2b4d3f}
+
+/* Логотип */
+html[data-theme="light"] .brand-ic{background:#22c55e; box-shadow:0 6px 16px rgba(34,197,94,.25)}
+html[data-theme="light"] .brand-ic svg{fill:#ffffff}
+
+/* 2. Пастельные карточки статистики */
+html[data-theme="light"] .stat:nth-child(1){background:#f4f8fc; border-color:#e6f0f9}
+html[data-theme="light"] .stat:nth-child(1) .ic{background:#e1edf8}
+html[data-theme="light"] .stat:nth-child(1) .ic svg{stroke:#3b82f6}
+
+html[data-theme="light"] .stat:nth-child(2){background:#f3faf5; border-color:#e4f2e8}
+html[data-theme="light"] .stat:nth-child(2) .ic{background:#e1f0e6}
+html[data-theme="light"] .stat:nth-child(2) .ic svg{stroke:#22c55e}
+
+html[data-theme="light"] .stat:nth-child(3){background:#fff9f0; border-color:#fef1de}
+html[data-theme="light"] .stat:nth-child(3) .ic{background:#fdf0d5}
+html[data-theme="light"] .stat:nth-child(3) .ic svg{stroke:#f59e0b}
+
+html[data-theme="light"] .stat:nth-child(4){background:#f3faf5; border-color:#e4f2e8}
+html[data-theme="light"] .stat:nth-child(4) .ic{background:#e1f0e6}
+html[data-theme="light"] .stat:nth-child(4) .ic svg{stroke:#22c55e}
+
+/* 3. Кнопки и свитчи */
+html[data-theme="light"] .btn-amber{color:#ffffff; box-shadow:0 4px 14px rgba(34,197,94,.25)}
+html[data-theme="light"] .btn-amber:hover{filter:brightness(1.05)}
+html[data-theme="light"] .switch input:checked+.track{background:#22c55e}
+html[data-theme="light"] .tabs button.active{color:#ffffff}
+html[data-theme="light"] .task input:checked+.box{color:#ffffff}
+
+/* Блок "Показывать видеонаблюдение" */
+html[data-theme="light"] div[style*="margin:0 0 14px"]{
+  background: rgba(34,197,94,.05) !important;
+  border: 1px solid rgba(34,197,94,.15) !important;
+  border-radius: 12px;
+  padding: 10px 14px;
+}
+
+/* Ссылки "Смотреть все" */
+html[data-theme="light"] .link{color:#15803d}
+html[data-theme="light"] .link:hover{color:#22c55e}
+
+/* Тост сохранения */
+html[data-theme="light"] .savechip.saved{color:#15803d;border-color:rgba(34,197,94,.3)}
+ 
+Патч 3. Сделайте фон «прозрачным» у иконки видео-свитча
+ 
+В функции renderDash найдите:
+var videoBtn='<div class="toolbar" style="margin:0 0 14px">'
+ 
+Замените на:
+var videoBtn='<div class="toolbar" style="margin:0 0 14px; border:1px solid var(--line); border-radius:12px; padding:10px 14px; background:var(--card)">'
+ 
+(Это добавит аккуратную рамку вокруг переключателя видеонаблюдения, как на скрине, чтобы он не висел просто на фоне).
