@@ -1,0 +1,78 @@
+Шаг 1. Обновите функцию calcModal
+ 
+Найдите функцию calcModal() (которую мы добавили в прошлом шаге) и замените её целиком на этот код:
+function calcModal(){
+  openModal('<h3>🧮 Калькуляторы электрика</h3>'
+    +'<div class="tabs" style="margin-bottom:16px;width:100%">'
+    +'<button id="tabBtn-cable" class="active" style="flex:1" onclick="calcSwitchTab(\'cable\')">Кабель и автомат</button>'
+    +'<button id="tabBtn-rcd" style="flex:1" onclick="calcSwitchTab(\'rcd\')">Защита УЗО</button>'
+    +'</div>'
+    
+    // Вкладка 1: Кабель
+    +'<div id="tab-cable" style="display:block">'
+    +'<div class="fgrid">'
+    +'<div><label>Нагрузка, кВт</label><input class="inp" id="cP" type="number" value="5" min="0.1" step="0.1"></div>'
+    +'<div><label>Сеть</label><select class="inp" id="cPh"><option value="1">Однофазная (220В)</option><option value="3">Трёхфазная (380В)</option></select></div>'
+    +'<div><label>Длина линии, м</label><input class="inp" id="cL" type="number" value="30" min="1"></div>'
+    +'<div><label>Материал жилы</label><select class="inp" id="cMat"><option value="cu">Медь</option><option value="al">Алюминий</option></select></div>'
+    +'</div>'
+    +'<button class="btn btn-amber" style="width:100%;margin-top:16px;justify-content:center" onclick="doCalc()">Рассчитать кабель</button>'
+    +'<div class="card" id="cRes" style="display:none;margin-top:16px;padding:16px"></div>'
+    +'</div>'
+
+    // Вкладка 2: УЗО
+    +'<div id="tab-rcd" style="display:none">'
+    +'<div class="fgrid">'
+    +'<div class="full"><label>Суммарная длина всех розеточных линий, м</label><input class="inp" id="rcdL" type="number" value="80" min="1"></div>'
+    +'</div>'
+    +'<div style="font-size:11.5px;color:var(--dim);margin-top:8px">Естественная утечка в бытовых сетях принимается за 10 мкА (0.01 мА) на 1 метр фазного провода.</div>'
+    +'<button class="btn btn-amber" style="width:100%;margin-top:16px;justify-content:center" onclick="doCalcRCD()">Рассчитать УЗО</button>'
+    +'<div class="card" id="rcdRes" style="display:none;margin-top:16px;padding:16px"></div>'
+    +'</div>'
+
+    +'<div class="modal-foot"><button class="btn btn-ghost" data-act="close">Закрыть</button></div>');
+}
+
+window.calcSwitchTab = function(tab){
+  document.getElementById('tab-cable').style.display = tab === 'cable' ? 'block' : 'none';
+  document.getElementById('tab-rcd').style.display = tab === 'rcd' ? 'block' : 'none';
+  document.getElementById('tabBtn-cable').className = tab === 'cable' ? 'active' : '';
+  document.getElementById('tabBtn-rcd').className = tab === 'rcd' ? 'active' : '';
+};
+ 
+Шаг 2. Добавьте логику для УЗО
+ 
+Сразу после функции window.doCalc = function(){ ... } (которая считает кабель), добавьте новую функцию для расчета УЗО:
+window.doCalcRCD = function(){
+  var L = parseFloat(document.getElementById("rcdL").value) || 0;
+  if(L <= 0) { toast("Введите положительную длину", "err"); return; }
+
+  // Формула: 0.01 мА на 1 метр линии
+  var leak = L * 0.01;
+  
+  // По ПУЭ естественная утечка не должна превышать 1/3 от номинала УЗО.
+  // Значит номинал УЗО должен быть минимум в 3 раза больше естественной утечки.
+  var neededRcd = leak * 3;
+
+  var resBox = document.getElementById("rcdRes");
+  resBox.style.display = "block";
+  
+  var rcdText = "УЗО 30 мА";
+  var alertHtml = "";
+
+  if (neededRcd > 30) {
+    rcdText = "УЗО 100 мА (или разделить на 2 линии)";
+    alertHtml = '<div class="calc-alert" style="display:block">⚠️ <b>Внимание:</b> Естественная утечка слишком велика для одного УЗО 30 мА. Оно будет ложно срабатывать. Разделите розетки на две группы с отдельными УЗО 30 мА, либо поставьте на ввод УЗО 100 мА (противопожарное).</div>';
+  } else if (neededRcd > 10) {
+    rcdText = "УЗО 30 мА (с осторожностью)";
+    alertHtml = '<div class="calc-alert" style="display:block;color:var(--yelT);border-color:var(--yel);background:rgba(246,196,69,.1)">⚠️ <b>Внимание:</b> Линия находится близко к пределу. Если есть возможность, разделите розеточную группу на две.</div>';
+  }
+
+  resBox.innerHTML = 
+    '<div style="font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;margin-bottom:8px">Результаты расчета</div>'
+    + '<div class="calc-row"><span>Суммарная длина линий</span><span>' + L + ' м</span></div>'
+    + '<div class="calc-row"><span>Естественная утечка</span><span>' + fnum(leak) + ' мА</span></div>'
+    + '<div class="calc-row"><span>Ток срабатывания (мин)</span><span>' + fnum(neededRcd) + ' мА</span></div>'
+    + '<div class="calc-row"><span>Рекомендуемое УЗО</span><span>' + rcdText + '</span></div>'
+    + alertHtml;
+};
