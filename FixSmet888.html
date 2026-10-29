@@ -1,0 +1,61 @@
+1. Замените стили (CSS)
+ 
+Найдите ваши стили для аккордеона (там где .proj-preview) и замените их целиком на эти:
+/* === АККОРДЕОН В КАРТОЧКЕ ПРОЕКТА === */
+.proj-preview {
+  display: none;
+  margin-top: 14px;
+  padding: 12px; /* Отступы внутри плашки */
+  background: var(--field); /* Серый фон, чтобы выделить блок */
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  animation: sectionFade .2s ease both;
+}
+.proj-preview.open { display: block; }
+
+.preview-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
+.preview-tbl { 
+  width: 100%; 
+  border-collapse: collapse; 
+  font-size: 11px; /* Уменьшили текст */
+  margin-bottom: 12px;
+}
+.preview-tbl td { 
+  padding: 6px 0; /* Убрали отступы по бокам, чтобы выровнять по краям плашки */
+  border-bottom: 1px dashed var(--line); 
+  color: var(--mut); 
+}
+.preview-tbl td:nth-child(2) { 
+  text-align: center; 
+  color: var(--dim); 
+  padding: 6px 4px;
+}
+.preview-tbl td:last-child { 
+  text-align: right; 
+  font-family: var(--mono); 
+  font-weight: 600; 
+  color: var(--ink); 
+  font-size: 11px;
+}
+ 
+2. Замените генерацию HTML в renderProjects
+ 
+Найдите в функции renderProjects кусок кода, где создается previewHtml (там где var estRows = ...), и замените его на этот:
+// Берем первые 5 строк из сметы
+    var estRows = estOf(p.id).rows.slice(0, 5);
+    var previewHtml = '<div class="proj-preview" id="prev-'+p.id+'">'
+      + '<div class="preview-title">Быстрая смета (5 позиций)</div>'
+      + (estRows.length ? '<table class="preview-tbl">' + estRows.map(function(r){ 
+          return '<tr><td>'+esc(r.name)+'</td><td>'+r.qty+' × '+fmt(r.price)+'</td><td>'+fmt(r.qty*r.price)+'</td></tr>'; 
+        }).join("") + '</table>' 
+        : '<div style="font-size:11px;color:var(--dim);margin-bottom:12px">Смета пока пуста</div>')
+      + '<button class="btn btn-amber" data-act="open-est" data-id="'+p.id+'" style="width:100%;justify-content:center;font-size:12px;padding:7px 10px">Открыть смету →</button>'
+      + '</div>';
