@@ -1,0 +1,80 @@
+Шаг 2. Безопасная замена (100% рабочий код)
+ 
+Чтобы исключить ошибку, я подготовил код, который нужно заменить целиком.
+ 
+Найдите в вашем скрипте схем две функции: wireSvg и renderProps. Полностью удалите их (от начала function wireSvg до закрывающей скобки перед следующей функцией) и вставьте этот блок:
+function wireSvg(w,sc){
+  var A=pinAbs(sc,w.a), B=pinAbs(sc,w.b); 
+  if(!A||!B) return "";
+  var pts=routePts(A,B), d=pathD(pts);
+  var sel=SCE.sel&&SCE.sel.k==="wire"&&SCE.sel.id===w.id;
+  
+  var color = w.color || "var(--ink)";
+  var strokeW = w.color ? "2.5" : "1.8";
+
+  var h='<g class="sch-wire'+(sel?" sel":"")+'" data-wire="'+w.id+'">'
+    +'<path class="wire" style="stroke:'+color+';stroke-width:'+strokeW+'" d="'+d+'"/>'
+    +'<path class="wire-hit" d="'+d+'"/>';
+    
+  if(w.label){
+    var m=pts.length>=4?{x:(pts[1].x+pts[2].x)/2,y:(pts[1].y+pts[2].y)/2}:{x:(pts[0].x+pts[1].x)/2,y:(pts[0].y+pts[1].y)/2};
+    h+='<text class="t2" x="'+m.x+'" y="'+(m.y-4)+'" text-anchor="middle">'+esc(w.label)+'</text>';
+  }
+  return h+'</g>';
+}
+
+function renderProps(){
+  var el=document.getElementById("schProps"); 
+  if(!el) return;
+  var sc=cur();
+  if(!sc){ el.innerHTML=""; return; }
+  
+  var head='<div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);font-weight:700;margin-bottom:8px">Свойства</div>';
+  var sel=SCE.sel;
+  
+  if(!sel){ 
+    el.innerHTML=head+'<div style="color:var(--dim);font-size:12.5px">Выберите элемент на схеме.</div>'; 
+    return; 
+  }
+  
+  if(sel.k==="node"){
+    var n=nodeById(sc,sel.id);
+    if(!n){ SCE.sel=null; return renderProps(); }
+    var c=LIB[n.type];
+    
+    var extra = "";
+    if(n.type==="rcbo" || n.type==="rcd2"){
+       extra = '<label style="display:block;font-size:11px;color:var(--dim);margin:10px 0 5px">Ток утечки</label>'
+             + '<input class="inp" data-prop="leak" value="'+esc(n.leak||"")+'" placeholder="30mA">';
+    }
+
+    el.innerHTML=head
+      +'<label style="display:block;font-size:11px;color:var(--dim);margin-bottom:5px">Обозначение</label>'
+      +'<input class="inp" data-prop="label" value="'+esc(n.label||"")+'" placeholder="QF1">'
+      +'<label style="display:block;font-size:11px;color:var(--dim);margin:10px 0 5px">Номинал</label>'
+      +'<input class="inp" data-prop="rating" value="'+esc(n.rating||"")+'" placeholder="C16">'
+      +extra
+      +'<div style="font-size:11.5px;color:var(--dim);margin-top:10px">'+esc(c.n)+'</div>'
+      +'<div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap">'
+      +'<button class="btn btn-ghost btn-sm" data-sch="dup-sel">⧉ Дублировать</button>'
+      +'<button class="btn btn-red btn-sm" data-sch="del-sel">Удалить</button></div>';
+  } else {
+    var w=sc.wires.filter(function(x){return x.id===sel.id;})[0];
+    if(!w){ SCE.sel=null; return renderProps(); }
+    
+    el.innerHTML=head
+      +'<label style="display:block;font-size:11px;color:var(--dim);margin-bottom:5px">Подпись линии</label>'
+      +'<input class="inp" data-prop="label" value="'+esc(w.label||"")+'" placeholder="L1 3×2,5">'
+      +'<label style="display:block;font-size:11px;color:var(--dim);margin:10px 0 5px">Цвет провода</label>'
+      +'<select class="inp" data-prop="color">'
+      +'<option value="" '+( !w.color ? 'selected' : '' )+'>Черный (по умолчанию)</option>'
+      +'<option value="#e53935" '+( w.color==="#e53935" ? 'selected' : '' )+'>Красный (Фаза)</option>'
+      +'<option value="#1e88e5" '+( w.color==="#1e88e5" ? 'selected' : '' )+'>Синий (Ноль)</option>'
+      +'<option value="#fbc02d" '+( w.color==="#fbc02d" ? 'selected' : '' )+'>Желтый</option>'
+      +'<option value="#43a047" '+( w.color==="#43a047" ? 'selected' : '' )+'>Зеленый</option>'
+      +'</select>'
+      +'<div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap">'
+      +'<button class="btn btn-red btn-sm" data-sch="del-sel">Удалить</button></div>';
+  }
+}
+ 
