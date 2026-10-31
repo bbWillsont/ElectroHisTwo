@@ -1,0 +1,201 @@
+Шаг 1. Замените библиотеку LIB и префиксы
+ 
+Найдите var LIB={...}; и var PREFIX={...}; в вашем скрипте схем и замените их целиком на этот код. Я разделил элементы по категориям (g) и сделал их реалистичными (использовал четкие контуры, без тяжелых SVG-градиентов, чтобы они не ломались при копировании).
+var LIB={
+  /* === ВВОД И УЧЕТ === */
+  input:{g:"Ввод и учет",n:"Вводной автомат (3P)",w:100,h:90,pins:[_p("in",50,0),_p("out",50,90)],d:function(n){
+    return '<rect class="body" x="0" y="0" width="100" height="90" rx="2" fill="#f0f0f0" stroke="#999"/>'
+      +'<rect x="0" y="12" width="100" height="10" fill="#e53935"/>'
+      +_t(50,36,n.rating||"C40","t1")
+      +'<rect x="10" y="42" width="24" height="22" rx="2" fill="#333"/>'
+      +'<rect x="38" y="42" width="24" height="22" rx="2" fill="#333"/>'
+      +'<rect x="66" y="42" width="24" height="22" rx="2" fill="#333"/>'
+      +'<circle cx="20" cy="6" r="4.5" fill="#ccc" stroke="#888"/><circle cx="50" cy="6" r="4.5" fill="#ccc" stroke="#888"/><circle cx="80" cy="6" r="4.5" fill="#ccc" stroke="#888"/>'
+      +'<circle cx="20" cy="84" r="4.5" fill="#ccc" stroke="#888"/><circle cx="50" cy="84" r="4.5" fill="#ccc" stroke="#888"/><circle cx="80" cy="84" r="4.5" fill="#ccc" stroke="#888"/>'
+      ;}},
+  meter:{g:"Ввод и учет",n:"Счетчик",w:72,h:90,pins:[_p("in",36,0),_p("out",36,90)],d:function(n){
+    return '<rect class="body" x="0" y="0" width="72" height="90" rx="2" fill="#f0f0f0" stroke="#999"/>'
+      +'<rect x="8" y="20" width="56" height="30" fill="#a4c2a8" stroke="#666"/>'
+      +_t(36,40,"kWh","t2")
+      +'<circle cx="20" cy="70" r="4" fill="#333"/><circle cx="36" cy="70" r="4" fill="#333"/><circle cx="52" cy="70" r="4" fill="#333"/>'
+      +'<circle cx="18" cy="6" r="4.5" fill="#ccc" stroke="#888"/><circle cx="54" cy="6" r="4.5" fill="#ccc" stroke="#888"/>'
+      +'<circle cx="18" cy="84" r="4.5" fill="#ccc" stroke="#888"/><circle cx="54" cy="84" r="4.5" fill="#ccc" stroke="#888"/>'
+      ;}},
+  voltmeter:{g:"Ввод и учет",n:"Реле напряжения",w:54,h:90,pins:[_p("in",27,0),_p("out",27,90)],d:function(n){
+    return '<rect class="body" x="0" y="0" width="54" height="90" rx="2" fill="#f0f0f0" stroke="#999"/>'
+      +'<rect x="6" y="16" width="42" height="24" fill="#111" rx="2"/>'
+      +_t(27,32,"230","t2")
+      +'<rect x="6" y="46" width="10" height="10" fill="#666"/><rect x="22" y="46" width="10" height="10" fill="#666"/><rect x="38" y="46" width="10" height="10" fill="#666"/>'
+      +'<rect x="12" y="64" width="30" height="12" fill="#333" rx="2"/>'+_t(27,73,"STATUS","t2")
+      +'<circle cx="16" cy="6" r="4.5" fill="#ccc" stroke="#888"/><circle cx="38" cy="6" r="4.5" fill="#ccc" stroke="#888"/>'
+      +'<circle cx="16" cy="84" r="4.5" fill="#ccc" stroke="#888"/><circle cx="38" cy="84" r="4.5" fill="#ccc" stroke="#888"/>'
+      ;}},
+
+  /* === АППАРАТЫ ЗАЩИТЫ === */
+  mcb1:{g:"Аппараты защиты",n:"Автомат 1P",w:32,h:90,pins:[_p("in",16,0),_p("out",16,90)],d:function(n){
+    return '<rect class="body" x="0" y="0" width="32" height="90" rx="2" fill="#f0f0f0" stroke="#999"/>'
+      +'<rect x="0" y="12" width="32" height="10" fill="#e53935"/>'
+      +_t(16,36,n.rating||"C16","t1")
+      +'<rect x="8" y="42" width="16" height="22" rx="2" fill="#333"/>'
+      +'<rect x="12" y="68" width="8" height="6" rx="1" fill="#4caf50"/>'
+      +'<circle cx="16" cy="6" r="4.5" fill="#ccc" stroke="#888"/><circle cx="16" cy="84" r="4.5" fill="#ccc" stroke="#888"/>'
+      ;}},
+  mcb2:{g:"Аппараты защиты",n:"Автомат 2P",w:64,h:90,pins:[_p("in",32,0),_p("out",32,90)],d:function(n){
+    return '<rect class="body" x="0" y="0" width="64" height="90" rx="2" fill="#f0f0f0" stroke="#999"/>'
+      +'<line x1="32" y1="0" x2="32" y2="90" stroke="#ccc" stroke-width="1"/>'
+      +'<rect x="0" y="12" width="64" height="10" fill="#e53935"/>'
+      +_t(32,36,n.rating||"C16","t1")
+      +'<rect x="8" y="42" width="16" height="22" rx="2" fill="#333"/><rect x="40" y="42" width="16" height="22" rx="2" fill="#333"/>'
+      +'<rect x="12" y="68" width="8" height="6" rx="1" fill="#4caf50"/><rect x="44" y="68" width="8" height="6" rx="1" fill="#4caf50"/>'
+      +'<circle cx="16" cy="6" r="4.5" fill="#ccc" stroke="#888"/><circle cx="48" cy="6" r="4.5" fill="#ccc" stroke="#888"/>'
+      +'<circle cx="16" cy="84" r="4.5" fill="#ccc" stroke="#888"/><circle cx="48" cy="84" r="4.5" fill="#ccc" stroke="#888"/>'
+      +_t(48,36,"N","t1");}},
+  mcb3:{g:"Аппараты защиты",n:"Автомат 3P",w:96,h:90,pins:[_p("in",48,0),_p("out",48,90)],d:function(n){
+    return '<rect class="body" x="0" y="0" width="96" height="90" rx="2" fill="#f0f0f0" stroke="#999"/>'
+      +'<line x1="32" y1="0" x2="32" y2="90" stroke="#ccc" stroke-width="1"/><line x1="64" y1="0" x2="64" y2="90" stroke="#ccc" stroke-width="1"/>'
+      +'<rect x="0" y="12" width="96" height="10" fill="#e53935"/>'
+      +_t(48,36,n.rating||"C25","t1")
+      +'<rect x="8" y="42" width="16" height="22" rx="2" fill="#333"/><rect x="40" y="42" width="16" height="22" rx="2" fill="#333"/><rect x="72" y="42" width="16" height="22" rx="2" fill="#333"/>'
+      +'<circle cx="16" cy="6" r="4.5" fill="#ccc" stroke="#888"/><circle cx="48" cy="6" r="4.5" fill="#ccc" stroke="#888"/><circle cx="80" cy="6" r="4.5" fill="#ccc" stroke="#888"/>'
+      +'<circle cx="16" cy="84" r="4.5" fill="#ccc" stroke="#888"/><circle cx="48" cy="84" r="4.5" fill="#ccc" stroke="#888"/><circle cx="80" cy="84" r="4.5" fill="#ccc" stroke="#888"/>'
+      ;}},
+  rcd2:{g:"Аппараты защиты",n:"УЗО 2P",w:64,h:90,pins:[_p("in",32,0),_p("out",32,90)],d:function(n){
+    return '<rect class="body" x="0" y="0" width="64" height="90" rx="2" fill="#f0f0f0" stroke="#999"/>'
+      +'<line x1="32" y1="0" x2="32" y2="90" stroke="#ccc" stroke-width="1"/>'
+      +'<rect x="0" y="12" width="64" height="10" fill="#2196f3"/>' // Синяя полоса у УЗО
+      +_t(32,36,n.rating||"40A","t1")
+      +'<rect x="4" y="42" width="24" height="22" rx="2" fill="#333"/>'
+      +'<rect x="9" y="68" width="8" height="6" rx="1" fill="#4caf50"/>'
+      +'<rect x="40" y="44" width="12" height="12" rx="1" fill="#2196f3"/>'+_t(46,53,"T","t2")
+      +_t(46,36,n.leak||"30mA","t2")
+      +'<circle cx="16" cy="6" r="4.5" fill="#ccc" stroke="#888"/><circle cx="48" cy="6" r="4.5" fill="#ccc" stroke="#888"/>'
+      +'<circle cx="16" cy="84" r="4.5" fill="#ccc" stroke="#888"/><circle cx="48" cy="84" r="4.5" fill="#ccc" stroke="#888"/>'
+      ;}},
+  rcbo:{g:"Аппараты защиты",n:"Дифавтомат",w:64,h:90,pins:[_p("in",32,0),_p("out",32,90)],d:function(n){
+    return '<rect class="body" x="0" y="0" width="64" height="90" rx="2" fill="#f0f0f0" stroke="#999"/>'
+      +'<line x1="32" y1="0" x2="32" y2="90" stroke="#ccc" stroke-width="1"/>'
+      +'<rect x="0" y="12" width="64" height="10" fill="#e53935"/>'
+      +_t(32,36,n.rating||"C16","t1")
+      +'<rect x="4" y="42" width="24" height="22" rx="2" fill="#333"/>'
+      +'<rect x="9" y="68" width="8" height="6" rx="1" fill="#4caf50"/>'
+      +'<rect x="40" y="44" width="12" height="12" rx="1" fill="#2196f3"/>'+_t(46,53,"T","t2")
+      +_t(46,36,n.leak||"30mA","t2")
+      +'<circle cx="16" cy="6" r="4.5" fill="#ccc" stroke="#888"/><circle cx="48" cy="6" r="4.5" fill="#ccc" stroke="#888"/>'
+      +'<circle cx="16" cy="84" r="4.5" fill="#ccc" stroke="#888"/><circle cx="48" cy="84" r="4.5" fill="#ccc" stroke="#888"/>'
+      ;}},
+
+  /* === КОММУТАЦИЯ === */
+  contactor:{g:"Коммутация",n:"Контактор",w:54,h:90,pins:[_p("in",27,0),_p("out",27,90)],d:function(n){
+    return '<rect class="body" x="0" y="0" width="54" height="90" rx="2" fill="#f0f0f0" stroke="#999"/>'
+      +_t(27,20,"A1","t2")+_t(27,80,"A2","t2")
+      +'<rect x="6" y="30" width="42" height="30" rx="2" fill="#333"/>'
+      +'<rect x="12" y="36" width="30" height="16" rx="1" fill="#666"/>'
+      +'<circle cx="16" cy="6" r="4.5" fill="#ccc" stroke="#888"/><circle cx="38" cy="6" r="4.5" fill="#ccc" stroke="#888"/>'
+      +'<circle cx="16" cy="84" r="4.5" fill="#ccc" stroke="#888"/><circle cx="38" cy="84" r="4.5" fill="#ccc" stroke="#888"/>'
+      ;}},
+  relay:{g:"Коммутация",n:"Реле",w:32,h:90,pins:[_p("in",16,0),_p("out",16,90)],d:function(n){
+    return '<rect class="body" x="0" y="0" width="32" height="90" rx="2" fill="#f0f0f0" stroke="#999"/>'
+      +_t(16,20,"A1","t2")+_t(16,80,"A2","t2")
+      +'<rect x="6" y="40" width="20" height="16" rx="2" fill="#2196f3"/>'
+      +'<circle cx="16" cy="6" r="4.5" fill="#ccc" stroke="#888"/><circle cx="16" cy="84" r="4.5" fill="#ccc" stroke="#888"/>'
+      ;}},
+
+  /* === ШИНЫ И КЛЕММЫ === */
+  pebus:{g:"Шины и клеммы",n:"Шина PE",w:216,h:20,pins:[_p("i",0,10),_p("t1",36,20),_p("t2",72,20),_p("t3",108,20),_p("t4",144,20),_p("t5",180,20),_p("e",216,10)],d:function(){
+    return '<rect class="body" x="0" y="6" width="216" height="8" rx="1" fill="#e6c35c" stroke="#a3822e"/>'
+      +'<circle cx="36" cy="10" r="2" fill="#333"/><circle cx="72" cy="10" r="2" fill="#333"/><circle cx="108" cy="10" r="2" fill="#333"/><circle cx="144" cy="10" r="2" fill="#333"/><circle cx="180" cy="10" r="2" fill="#333"/>'
+      +_t(108,4,"PE","t2");}},
+  nbus:{g:"Шины и клеммы",n:"Шина N",w:216,h:20,pins:[_p("i",0,10),_p("t1",36,20),_p("t2",72,20),_p("t3",108,20),_p("t4",144,20),_p("t5",180,20),_p("e",216,10)],d:function(){
+    return '<rect class="body" x="0" y="6" width="216" height="8" rx="1" fill="#2196f3" stroke="#1565c0"/>'
+      +'<circle cx="36" cy="10" r="2" fill="#fff"/><circle cx="72" cy="10" r="2" fill="#fff"/><circle cx="108" cy="10" r="2" fill="#fff"/><circle cx="144" cy="10" r="2" fill="#fff"/><circle cx="180" cy="10" r="2" fill="#fff"/>'
+      +_t(108,4,"N","t2");}},
+  terminal5:{g:"Шины и клеммы",n:"Клеммник 5-pin",w:90,h:20,pins:[_p("a",0,10),_p("b",90,10)],d:function(){
+    return '<rect class="body" x="0" y="2" width="90" height="16" fill="#e6c35c" stroke="#a3822e"/>'
+      +'<circle cx="15" cy="10" r="2.5" fill="#333"/><circle cx="30" cy="10" r="2.5" fill="#333"/><circle cx="45" cy="10" r="2.5" fill="#333"/><circle cx="60" cy="10" r="2.5" fill="#333"/><circle cx="75" cy="10" r="2.5" fill="#333"/>';}},
+
+  /* === ПОТРЕБИТЕЛИ === */
+  socket:{g:"Потребители",n:"Розетка",w:44,h:56,pins:[_p("in",22,0)],d:function(n){
+    return '<circle class="body" cx="22" cy="24" r="16"/><circle class="ln" cx="16" cy="24" r="2.4"/><circle class="ln" cx="28" cy="24" r="2.4"/>'+_t(22,53,n.rating||"","t2");}},
+  lamp:{g:"Потребители",n:"Светильник",w:44,h:56,pins:[_p("in",22,0)],d:function(n){
+    return '<circle class="body" cx="22" cy="24" r="15"/><path class="ln" d="M14 16l16 16M30 16L14 32"/>'+_t(22,53,n.rating||"","t2");}},
+  motor:{g:"Потребители",n:"Двигатель",w:48,h:60,pins:[_p("in",24,0)],d:function(n){
+    return '<circle class="body" cx="24" cy="26" r="17"/>'+_t(24,30,"M")+_t(24,57,n.rating||"","t2");}},
+  load:{g:"Потребители",n:"Нагрузка",w:44,h:56,pins:[_p("in",22,0)],d:function(n){
+    return '<rect class="body" x="8" y="10" width="28" height="28" rx="4"/>'+_t(22,30,"R")+_t(22,53,n.rating||"","t2");}},
+  junction:{g:"Потребители",n:"Узел",w:14,h:14,pins:[_p("c",7,7)],d:function(){ return '<circle class="dot" cx="7" cy="7" r="3.4"/>';}},
+  label:{g:"Прочее",n:"Подпись",w:120,h:22,nolabel:true,pins:[],d:function(n){ return _t(60,15,n.label||"Текст");}}
+};
+
+var PREFIX={
+  input:"QF", mcb1:"QF", mcb2:"QF", mcb3:"QF", rcd2:"QD", rcbo:"QD", contactor:"KM", relay:"K", 
+  meter:"PI", voltmeter:"PH", terminal5:"X", socket:"XS", lamp:"HL", motor:"M", load:"EK",
+  pebus:"", nbus:"", junction:"", label:""
+};
+ 
+Шаг 2. Добавляем цветные провода (Красный, Синий, Земля)
+ 
+На вашей картинке провода цветные. Без этого схема не будет выглядеть профессионально.
+ 
+Найдите функцию wireSvg:
+function wireSvg(w,sc){
+  var A=pinAbs(sc,w.a), B=pinAbs(sc,w.b); if(!A||!B) return "";
+  var pts=routePts(A,B), d=pathD(pts);
+  var sel=SCE.sel&&SCE.sel.k==="wire"&&SCE.sel.id===w.id;
+  var h='<g class="sch-wire'+(sel?" sel":"")+'" data-wire="'+w.id+'">'
+    +'<path class="wire" d="'+d+'"/><path class="wire-hit" d="'+d+'"/>';
+ 
+И замените её на эту (добавили w.color):
+function wireSvg(w,sc){
+  var A=pinAbs(sc,w.a), B=pinAbs(sc,w.b); if(!A||!B) return "";
+  var pts=routePts(A,B), d=pathD(pts);
+  var sel=SCE.sel&&SCE.sel.k==="wire"&&SCE.sel.id===w.id;
+  
+  // Определяем цвет. По умолчанию - темный.
+  var color = w.color || "var(--ink)";
+  var strokeW = w.color ? "2.5" : "1.8"; // Цветные провода делаем чуть толще
+
+  var h='<g class="sch-wire'+(sel?" sel":"")+'" data-wire="'+w.id+'">'
+    +'<path class="wire" style="stroke:'+color+';stroke-width:'+strokeW+'" d="'+d+'"/><path class="wire-hit" d="'+d+'"/>';
+ 
+Шаг 3. Добавляем выбор цвета в свойства провода
+ 
+Найдите в функции renderProps блок для wire (провода):
+} else {
+    var w=sc.wires.filter(function(x){return x.id===sel.id;})[0];
+    if(!w){ SCE.sel=null; return renderProps(); }
+    el.innerHTML=head
+      +'<label style="display:block;font-size:11px;color:var(--dim);margin-bottom:5px">Подпись линии</label>'
+      +'<input class="inp" data-prop="label" value="'+esc(w.label||"")+'" placeholder="L1 3×2,5">'
+ 
+И замените его на (добавили выпадающий список цветов):
+} else {
+    var w=sc.wires.filter(function(x){return x.id===sel.id;})[0];
+    if(!w){ SCE.sel=null; return renderProps(); }
+    el.innerHTML=head
+      +'<label style="display:block;font-size:11px;color:var(--dim);margin-bottom:5px">Подпись линии</label>'
+      +'<input class="inp" data-prop="label" value="'+esc(w.label||"")+'" placeholder="L1 3×2,5">'
+      +'<label style="display:block;font-size:11px;color:var(--dim);margin:10px 0 5px">Цвет провода</label>'
+      +'<select class="inp" data-prop="color">'
+      +'<option value="" '+( !w.color ? 'selected' : '' )+'>Черный (по умолчанию)</option>'
+      +'<option value="#e53935" '+( w.color==="#e53935" ? 'selected' : '' )+'>Красный (Фаза)</option>'
+      +'<option value="#1e88e5" '+( w.color==="#1e88e5" ? 'selected' : '' )+'>Синий (Ноль)</option>'
+      +'<option value="#fbc02d" '+( w.color==="#fbc02d" ? 'selected' : '' )+'>Желтый (Фаза B)</option>'
+      +'<option value="#43a047" '+( w.color==="#43a047" ? 'selected' : '' )+'>Зеленый (Фаза C)</option>'
+      +'<option value="#8d6e63" '+( w.color==="#8d6e63" ? 'selected' : '' )+'>Коричневый</option>'
+      +'</select>'
+ 
+(Если нужно, чтобы цвет можно было выбрать, просто оставьте обработчик input как есть, он сам подхватит data-prop="color").
+ 
+Шаг 4. Немного увеличим рабочее поле
+ 
+Найдите в CSS .sch-canvas { height: min(72vh, 760px); } и сделайте его чуть больше, чтобы удобнее было строить длинные щиты:
+.sch-canvas { height: min(85vh, 900px); }
+ 
+ 
+Что мы получили:
+1. Счетчик, Реле напряжения — как на первом ряду фото.
+2. Автоматы 1P, 2P, 3P, УЗО (синяя полоса) и Дифавтоматы (красная полоса + синяя кнопка Тест) — как во втором и третьем ряду.
+3. Контакторы и реле.
+4. Длинные желтые клеммники (Шины PE и N) — чтобы рисовать вводные планки.
+5. Цветные провода. При выделении провода на схеме, в левой панели появится выбор цвета. Выбираете «Красный» — провод сразу перекрашивается в красный. 
+Теперь вы можете полностью повторить ту схему, которую прислали. Если какие-то мелкие детали (например, 3-фазное УЗО на 4 модуля) нужны отдельно — скажите, я добавлю.
