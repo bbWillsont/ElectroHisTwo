@@ -1,0 +1,19 @@
+<script>
+setTimeout(function(){
+  var nav=document.getElementById("nav");
+  if(nav && !nav.querySelector('[data-sec="schemes"]')){
+    var btn=document.createElement("button");
+    btn.className="nav-btn"; btn.setAttribute("data-act","nav"); btn.setAttribute("data-sec","schemes");
+    btn.innerHTML='<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 7v10M12 7v10M16 7v10"/></svg>Схемы';
+    var priceBtn=nav.querySelector('[data-sec="price"]');
+    nav.insertBefore(btn, priceBtn||null);
+  }
+  var mn=document.getElementById("mnav");
+  if(mn && !mn.querySelector('[data-sec="schemes"]')){
+    var mb=document.createElement("button");
+    mb.setAttribute("data-act","nav"); mb.setAttribute("data-sec","schemes"); mb.title="Схемы";
+    mb.innerHTML='<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 7v10M12 7v10M16 7v10"/></svg><span>Схемы</span>';
+    mn.appendChild(mb);
+  }
+}, 500);
+</script>
