@@ -1,0 +1,20 @@
+function signBlocks(clientName){
+  var pr=state.profile||{};
+  var execLabel=pr.sigExecLabel||"Исполнитель:";
+  var cliLabel=pr.sigClientLabel||"Заказчик:";
+  var execName=(pr.autoSign!==false)?esc(shortName(pr.fio||pr.org||pr.name||"")):"";
+  
+  // Картинка подписи (если загружена И включена галочка)
+  var sigImg = "";
+  if (pr.signature && pr.showClientSign !== false) {
+    sigImg = '<img src="'+pr.signature+'" style="height:40px;max-width:150px;display:block;margin-bottom:-10px;">';
+  }
+
+  var execHtml='<div>'+esc(execLabel)+' '+(execName?'<b>'+execName+'</b> ':'')+'<div class="ln">подпись</div></div>';
+  
+  // Блок заказчика теперь ВСЕГДА выводится
+  var cn=(pr.showClientName!==false&&clientName)?esc(clientName):"";
+  var cliHtml='<div>'+esc(cliLabel)+' '+(cn?'<b>'+cn+'</b> ':'')+sigImg+'<div class="ln">подпись</div></div>';
+
+  return '<div class="doc-sign">'+execHtml+cliHtml+'</div>';
+}
