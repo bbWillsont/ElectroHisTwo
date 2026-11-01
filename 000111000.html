@@ -1,0 +1,66 @@
+Шаг 1. Фикс переноса подписей (CSS)
+ 
+Найдите в вашем <style> блок @media print и добавьте внутрь него это правило (оно запретит браузеру разрывать блок подписей и уменьшит отступ):
+@media print {
+  /* ... ваши существующие стили ... */
+  
+  /* Запрещаем разрывать блок подписей */
+  .doc-sign {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    margin-top: 20px !important; /* Уменьшили отступ, чтобы влезало на лист */
+  }
+}
+ 
+ 
+Шаг 2. Отключение подписи заказчика
+ 
+2.1. Добавляем настройку в профиль
+Найдите в начале скрипта var DEF_PROFILE = { и добавьте туда параметр showClientSign: true (через запятую).
+var DEF_PROFILE={
+  // ... другие настройки ...
+  showClientName:true, 
+  showClientSign:true, // <--- ДОБАВЛЯЕМ ЭТУ СТРОКУ
+  // ...
+ 
+2.2. Учим функцию подписей проверять эту настройку
+Найдите функцию signBlocks(clientName). Замените её на эту:
+function signBlocks(clientName){
+  var pr=state.profile||{};
+  var execLabel=pr.sigExecLabel||"Исполнитель:";
+  var cliLabel=pr.sigClientLabel||"Заказчик:";
+  var execName=(pr.autoSign!==false)?esc(shortName(pr.fio||pr.org||pr.name||"")):"";
+  
+  // Картинка подписи (если загружена)
+  var sigImg = pr.signature ? '<img src="'+pr.signature+'" style="height:40px;max-width:150px;display:block;margin-bottom:-10px;">' : "";
+
+  var execHtml='<div>'+esc(execLabel)+' '+(execName?'<b>'+execName+'</b> ':'')+'<div class="ln">подпись</div></div>';
+  
+  // Если включена настройка "Показывать подпись заказчика" - выводим, иначе пустая строка
+  var cliHtml = "";
+  if (pr.showClientSign !== false) {
+    var cn=(pr.showClientName!==false&&clientName)?esc(clientName):"";
+    cliHtml='<div>'+esc(cliLabel)+' '+(cn?'<b>'+cn+'</b> ':'')+sigImg+'<div class="ln">подпись</div></div>';
+  }
+
+  return '<div class="doc-sign">'+execHtml+cliHtml+'</div>';
+}
+ 
+2.3. Добавляем галочку в настройки документов
+В функции renderDocs (настройки профиля) найдите блок с галочками:
++'<div class="full"><label class="chk"><input type="checkbox" name="autoSign" '+(pr.autoSign!==false?"checked":"")+'> Автоподстановка ФИО</label>'
++'<label class="chk"><input type="checkbox" name="showClientName" '+(pr.showClientName!==false?"checked":"")+'> Показывать заказчика в подписи</label></div>'
+ 
+Замените его на:
++'<div class="full"><label class="chk"><input type="checkbox" name="autoSign" '+(pr.autoSign!==false?"checked":"")+'> Автоподстановка ФИО</label>'
++'<label class="chk"><input type="checkbox" name="showClientName" '+(pr.showClientName!==false?"checked":"")+'> Показывать заказчика в подписи</label>'
++'<label class="chk"><input type="checkbox" name="showClientSign" '+(pr.showClientSign!==false?"checked":"")+'> Выводить блок подписи заказчика</label></div>'
+ 
+2.4. Сохраняем настройку при нажатии «Сохранить»
+В самом низу скрипта найдите обработчик формы настроек if(f.id==="docsForm"){ и найдите строку showClientDoc:....
+ 
+Добавьте рядом строку сохранения showClientSign:
+showClientDoc:d5.get("showClientDoc")==="on",
+      showClientSign:d5.get("showClientSign")==="on", // <--- ДОБАВЛЯЕМ ЭТУ СТРОКУ
+      showAddressDoc:d5.get("showAddressDoc")==="on",
+ 
