@@ -1,0 +1,153 @@
+Фича 1. Спецификация из схемы в смету (1 клик)
+ 
+Шаг 1. В модуле схем найдите функцию specModal и добавьте кнопку «В смету» рядом с кнопкой Excel:
+// Ищем эту строку:
++'<button class="btn btn-ghost" data-sch="spec-xlsx" data-id="'+sc.id+'">⬇ Excel</button></div>'
+// Заменяем на:
++'<button class="btn btn-ghost" data-sch="spec-xlsx" data-id="'+sc.id+'">⬇ Excel</button>'
++'<button class="btn btn-amber" data-sch="spec-to-est" data-id="'+sc.id+'">➕ В смету</button></div>'
+ 
+Шаг 2. В обработчике кликов схем (где if(a==="spec-xlsx")) добавьте обработчик переноса:
+if(a==="spec-to-est"){
+    var scx=byId(id); 
+    if(!scx) return;
+    if(!ui.projectId || !projOf(ui.projectId)){ toast("Сначала откройте проект!","err"); return; }
+    
+    var groups=specGroups(scx);
+    var est=estOf(ui.projectId);
+    var added=0;
+
+    groups.order.forEach(function(k){
+      var g=groups.g[k];
+      var searchName=g.name.toLowerCase();
+      // Ищем цену в прайсе (если есть)
+      var pi=state.pricelist.find(function(x){ return x.name.toLowerCase().indexOf(searchName)!==-1; });
+      
+      est.rows.push({
+        id: uid(),
+        name: g.name + (g.rating ? " " + g.rating : ""),
+        kind: "material",
+        unit: "шт.",
+        qty: g.qty,
+        price: pi ? pi.price : 0,
+        trade: "elektro"
+      });
+      added++;
+    });
+    
+    save(); closeModal(); 
+    toast("Добавлено позиций: " + added, "ok");
+    go("estimates"); // Перекидываем в смету
+    return;
+  }
+ 
+ 
+Фича 2. Автовыравнивание по DIN-рейке (Идеальная линия)
+ 
+Шаг 1. В редакторе схем добавьте кнопку в панель инструментов (рядом с кнопкой Спецификации):
+// В функции editorHtml ищем:
++'<button class="btn btn-ghost btn-sm" data-sch="spec">📋 Спецификация</button>'
+// Заменяем на:
++'<button class="btn btn-ghost btn-sm" data-sch="align" title="Выровнять всё по линии">📏 Ровно</button>'
++'<button class="btn btn-ghost btn-sm" data-sch="spec">📋 Спецификация</button>'
+ 
+Шаг 2. В обработчике кликов (где if(a==="del-sel")) добавьте логику выравнивания. Она берет все элементы, сортирует их и ставит в ряд с нулевым зазором (как на реальной DIN-рейке):
+if(a==="align"){
+    var scA=cur(); if(!scA || !scA.nodes.length) return;
+    
+    // Сортируем элементы слева направо, чтобы сохранить их логический порядок
+    scA.nodes.sort(function(n1,n2){ return n1.x - n2.x; });
+    
+    var currentX = 100; // Стартовая позиция
+    var rowY = 150;     // Позиция по вертикали
+    
+    scA.nodes.forEach(function(n){
+      var c = LIB[n.type]; if(!c) return;
+      n.x = currentX;
+      n.y = rowY;
+      currentX += c.w; // Приставляем вплотную (зазор 0)
+    });
+    
+    saveSoon(); renderSvg(); toast("Выровнено по рейке","ok");
+    return;
+  }
+ 
+ 
+Фича 3. Подпись клиента пальцем (В PDF и на печати)
+ 
+Шаг 1. В самом начале скрипта (где var DEF_PROFILE) добавьте поле для хранения подписи:
+// Найдите var DEF_PROFILE = { ...
+// И добавьте в объект (через запятую):
+  signature: "",
+ 
+Шаг 2. Измените функцию signBlocks, чтобы она вставляла картинку подписи, если она есть:
+function signBlocks(clientName){
+  var pr=state.profile||{};
+  var execLabel=pr.sigExecLabel||"Исполнитель:";
+  var cliLabel=pr.sigClientLabel||"Заказчик:";
+  var execName=(pr.autoSign!==false)?esc(shortName(pr.fio||pr.org||pr.name||"")):"";
+  
+  // Картинка подписи (если загружена)
+  var sigImg = pr.signature ? '<img src="'+pr.signature+'" style="height:40px;max-width:150px;display:block;margin-bottom:-10px;">' : "";
+
+  var execHtml='<div>'+esc(execLabel)+' '+(execName?'<b>'+execName+'</b> ':'')+'<div class="ln">подпись</div></div>';
+  
+  var cn=(pr.showClientName!==false&&clientName)?esc(clientName):"";
+  // Вставляем картинку подписи над линией у Заказчика
+  var cliHtml='<div>'+esc(cliLabel)+' '+(cn?'<b>'+cn+'</b> ':'')+sigImg+'<div class="ln">подпись</div></div>';
+  
+  return '<div class="doc-sign">'+execHtml+cliHtml+'</div>';
+}
+ 
+Шаг 3. Добавьте модалку для рисования подписи. Вставьте эту функцию рядом с settingsModal:
+function signatureModal(){
+  openModal('<h3>✍️ Подпись заказчика</h3>'
+    +'<div style="font-size:13px;color:var(--mut);margin-bottom:12px">Поставьте подпись пальцем или мышкой. Она будет автоматически добавляться в акты и сметы.</div>'
+    +'<canvas id="sigCanvas" width="400" height="150" style="width:100%;height:150px;background:var(--field);border:1px dashed var(--line2);border-radius:12px;touch-action:none;cursor:crosshair"></canvas>'
+    +'<div class="modal-foot" style="justify-content:space-between">'
+    +'<button class="btn btn-ghost" data-act="sig-clear">Очистить</button>'
+    +'<div style="display:flex;gap:10px">'
+    +'<button class="btn btn-ghost" data-act="close">Отмена</button>'
+    +'<button class="btn btn-amber" data-act="sig-save">Сохранить</button>'
+    +'</div></div>');
+    
+  var canvas=document.getElementById("sigCanvas"), ctx=canvas.getContext("2d");
+  
+  // Очищаем холст (белый фон)
+  ctx.fillStyle="#ffffff"; ctx.fillRect(0,0,canvas.width,canvas.height);
+  
+  // Если подпись уже есть - загружаем её (на белом фоне)
+  if(state.profile.signature){
+    var img=new Image();
+    img.onload=function(){ ctx.drawImage(img,0,0,canvas.width,canvas.height); };
+    img.src=state.profile.signature;
+  }
+  
+  var drawing=false;
+  function getPos(e){ var r=canvas.getBoundingClientRect(); return {x:(e.clientX-r.left)*(canvas.width/r.width), y:(e.clientY-r.top)*(canvas.height/r.height)}; }
+  
+  canvas.addEventListener("pointerdown",function(e){ drawing=true; var p=getPos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y); });
+  canvas.addEventListener("pointermove",function(e){ if(!drawing) return; var p=getPos(e); ctx.lineTo(p.x,p.y); ctx.strokeStyle="#111"; ctx.lineWidth=2.5; ctx.lineCap="round"; ctx.stroke(); });
+  window.addEventListener("pointerup",function(){ drawing=false; });
+  
+  // Обработчики кнопок модалки
+  var btnClear=document.querySelector('[data-act="sig-clear"]');
+  if(btnClear) btnClear.onclick=function(){ ctx.fillStyle="#ffffff"; ctx.fillRect(0,0,canvas.width,canvas.height); };
+  
+  var btnSave=document.querySelector('[data-act="sig-save"]');
+  if(btnSave) btnSave.onclick=function(){
+    // Сжимаем в JPEG с прозрачностью (на самом деле белый фон)
+    state.profile.signature=canvas.toDataURL("image/png");
+    saveNow(); closeModal(); toast("Подпись сохранена","ok");
+  };
+}
+ 
+Шаг 4. Добавьте кнопку вызова этой модалки.
+В settingsModal (где настройки профиля) добавьте кнопку рядом с QR-кодом:
+// Найдите:
++'<div class="full docs-h">QR-код для оплаты</div>'
+// Вставьте перед ней:
++'<div class="full" style="margin-bottom:10px"><button type="button" class="btn btn-cyan" onclick="signatureModal()">✍️ Настроить подпись заказчика</button></div>'
+ 
+Шаг 5. Чтобы кнопка работала, глобально вынесите функцию (добавьте после function settingsModal()):
+window.signatureModal = signatureModal;
