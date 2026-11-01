@@ -1,0 +1,52 @@
+Шаг 1. Меняем код в Смете (функция buildEstDocWith)
+ 
+Найдите в коде функцию buildEstDocWith (она формирует смету). Внутри неё найдите такой блок (он отвечает за доп. расходы):
+if(expRows.length){
+    totals+='<tr><td colspan="2"><b>Дополнительные расходы</b></td></tr>';
+    expRows.forEach(function(x){ totals+='<tr><td>'+esc(x.note||EXP_L[x.cat]||"Прочее")+'</td><td style="text-align:right">'+fmt(x.sum)+'</td></tr>'; });
+  }
+ 
+Замените его на этот:
+if(expRows.length){
+    totals+='<tr><td colspan="2"><b>Дополнительные расходы</b></td></tr>';
+    expRows.forEach(function(x){ 
+      totals+='<tr><td colspan="2">'
+        + '<div style="display:flex; justify-content:space-between; align-items:baseline; padding:2px 0;">'
+        + '<span style="padding-right:20px;">'+esc(x.note||EXP_L[x.cat]||"Прочее")+'</span>'
+        + '<b style="white-space:nowrap;">'+fmt(x.sum)+'</b>'
+        + '</div></td></tr>'; 
+    });
+  }
+ 
+Шаг 2. Меняем код в Акте (функция buildWorkAct)
+ 
+Найдите в коде функцию buildWorkAct (Акт выполненных работ). Там точно такой же блок с доп. расходами. Замените его на точно такой же код, как в Шаге 1. 
+ 
+Шаг 3. Запрещаем разрыв строк при печати (чтобы не уезжало на второй лист)
+ 
+Найдите в вашем <style> блок @media print (в самом конце). Убедитесь, что там есть эти строки (добавьте, если их нет):
+@media print{
+  /* ... остальные стили ... */
+  
+  /* Запрещает разрыв строки таблицы на две страницы */
+  #printSheet tr { 
+    page-break-inside: avoid !important; 
+    break-inside: avoid !important; 
+  }
+  /* Повторяет шапку таблицы на каждом новом листе */
+  #printSheet thead { 
+    display: table-header-group; 
+  }
+}
+ 
+Шаг 4. Устраняем «разбеги» (Классический дизайн)
+ 
+Если вы уже добавили пункт «Классический (ГОСТ)» в настройках, давайте убедимся, что стили для него применились.
+ 
+Найдите в вашем <style> добавленный ранее блок /* === КЛАССИЧЕСКИЙ ДИЗАЙН (ГОСТ) === */. Убедитесь, что он выглядит именно так (обратите внимание на padding — он делает таблицу плотной):
+.doc .dtbl.t-classic { border-collapse: collapse; margin: 10px 0; }
+.doc .dtbl.t-classic th { border: 1px solid #000; background: #f0f0f0; color: #000; padding: 4px 6px; font-size: 9.5px; text-transform: uppercase; }
+.doc .dtbl.t-classic td { border: 1px solid #000; padding: 4px 6px; font-size: 11px; background: #fff; }
+.doc .dtbl.t-classic .doc-sec { background: #e9eaec; border: 1px solid #000; font-weight: 700; }
+ 
+(Если этого блока нет — скопируйте его в самый конец <style>).
