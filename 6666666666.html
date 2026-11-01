@@ -1,0 +1,84 @@
+1. Исправляем переносы в «Доп. расходах»
+ 
+Вам нужно найти в коде функцию buildEstDocWith (она рисует смету) и buildWorkAct (она рисует акт работ).
+ 
+В обеих функциях найдите этот блок:
+if(expRows.length){
+    totals+='<tr><td colspan="2"><b>Дополнительные расходы</b></td></tr>';
+    expRows.forEach(function(x){ totals+='<tr><td>'+esc(x.note||EXP_L[x.cat]||"Прочее")+'</td><td style="text-align:right">'+fmt(x.sum)+'</td></tr>'; });
+  }
+ 
+И замените его на этот (добавили width:auto !important и white-space:nowrap):
+if(expRows.length){
+    totals+='<tr><td colspan="2"><b>Дополнительные расходы</b></td></tr>';
+    expRows.forEach(function(x){ 
+      totals+='<tr>'
+        + '<td style="width:auto !important; padding-right:20px">'+esc(x.note||EXP_L[x.cat]||"Прочее")+'</td>'
+        + '<td style="text-align:right; white-space:nowrap">'+fmt(x.sum)+'</td>'
+        + '</tr>'; 
+    });
+  }
+ 
+(Сделайте это в обеих функциях — и в смете, и в акте выполненных работ).
+ 
+2. Запрещаем разрыв строк при печати
+ 
+Чтобы позиция не переносилась на другую страницу (когда наименование осталось на первой странице, а сумма уехала на вторую), найдите в вашем <style> блок @media print и добавьте туда это правило:
+@media print {
+  /* ... остальной код ... */
+  
+  /* Запрещаем браузеру разрывать строку таблицы на две страницы */
+  #printSheet tr { 
+    page-break-inside: avoid !important; 
+    break-inside: avoid !important; 
+  }
+  /* Шапка таблицы будет повторяться на каждом новом листе */
+  #printSheet thead { 
+    display: table-header-group; 
+  }
+}
+ 
+3. «Классический» дизайн (ГОСТ)
+ 
+Чтобы убрать «разбеги» и сделать таблицы плотными, строгими и с четкими черными рамками:
+ 
+Шаг А. Добавьте эти стили в общий блок <style> (не в @media print):
+/* === КЛАССИЧЕСКИЙ ДИЗАЙН (ГОСТ) === */
+.doc .dtbl.t-classic {
+  border-collapse: collapse;
+  margin: 10px 0;
+}
+.doc .dtbl.t-classic th {
+  border: 1px solid #000;
+  background: #f0f0f0;
+  color: #000;
+  padding: 4px 6px;
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.doc .dtbl.t-classic td {
+  border: 1px solid #000;
+  padding: 4px 6px;
+  font-size: 11px;
+  background: #fff;
+}
+.doc .dtbl.t-classic .doc-sec {
+  background: #e9eaec;
+  border: 1px solid #000;
+  font-weight: 700;
+}
+ 
+Шаг Б. В функции renderDocs (настройки документов) найдите выпадающий список стилей таблиц и добавьте в него новый пункт:
+ 
+Найдите:
++'<div><label>Стиль таблиц</label><select class="inp" name="tblStyle"><option value="grid" '+((pr.tblStyle||"grid")==="grid"?"selected":"")+'>Сетка</option><option value="striped" '+(pr.tblStyle==="striped"?"selected":"")+'>Полосатый</option><option value="minimal" '+(pr.tblStyle==="minimal"?"selected":"")+'>Минимализм</option></select></div>'
+ 
+Замените на:
++'<div><label>Стиль таблиц</label><select class="inp" name="tblStyle">'
++ '<option value="grid" '+((pr.tblStyle||"grid")==="grid"?"selected":"")+'>Сетка</option>'
++ '<option value="classic" '+(pr.tblStyle==="classic"?"selected":"")+'>Классический (ГОСТ)</option>'
++ '<option value="striped" '+(pr.tblStyle==="striped"?"selected":"")+'>Полосатый</option>'
++ '<option value="minimal" '+(pr.tblStyle==="minimal"?"selected":"")+'>Минимализм</option>'
++ '</select></div>'
+ 
